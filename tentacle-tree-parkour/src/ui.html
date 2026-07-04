@@ -1,7 +1,7 @@
 <div id="hud">
   <div id="topbar">
     <div id="hpwrap"><div id="hpbar"></div></div>
-    <div id="stats">LV <span id="stat-level">1</span> &nbsp;·&nbsp; 🛸 <span id="stat-hops">0</span> hops &nbsp;·&nbsp; 🌳 <span id="stat-trees">0</span> &nbsp;·&nbsp; ⭐ <span id="stat-score">0</span> &nbsp;·&nbsp; best <span id="stat-best">0</span></div>
+    <div id="stats">LV <span id="stat-level">1</span> &nbsp;·&nbsp; 🛸 <span id="stat-hops">0</span> hops &nbsp;·&nbsp; 🌳 <span id="stat-trees">0</span> &nbsp;·&nbsp; ⭐ <span id="stat-score">0</span> &nbsp;·&nbsp; best <span id="stat-best">0</span> <span id="chase-chip" class="hidden">&nbsp;·&nbsp; 🚨 <span id="stat-chase">—</span></span></div>
   </div>
 
   <div id="crosshair" class="hidden"></div>
@@ -21,6 +21,17 @@
     </div>
   </div>
 
+  <div id="cutscene" class="hidden">
+    <div class="cutbar top"></div>
+    <div class="cutbar bottom"></div>
+    <div id="cut-box">
+      <div id="cut-speaker">GALACTIC PATROL</div>
+      <div id="cut-text"></div>
+      <div id="cut-adv">click / space ▸</div>
+    </div>
+    <button id="cut-skip">SKIP ▸▸</button>
+  </div>
+
   <div id="hint" class="hidden"></div>
   <div id="pops"></div>
   <div id="vignette"></div>
@@ -29,7 +40,7 @@
   <div id="overlay">
     <div id="panel">
       <h1 id="o-title">TENTACLE TREETOPS</h1>
-      <p id="o-sub">You crash-landed on an alien world and your saucer is parked at the far end of the glowing grove. Grapple the canopy first-person with your tentacles — when time slows, hit the number before 3.5 seconds run out or you drop. And punch <i>every</i> little gunner between you and home.</p>
+      <p id="o-sub">You are Splort the Slippery — the most wanted tentacle in the galaxy — and the Galactic Patrol just found your hideout. Escape through the glowing grove, lose the sirens, then grapple your way back to your saucer. When time slows, hit the number before 3.5 seconds run out or you drop. And punch <i>every</i> little gunner along the way.</p>
       <div id="o-controls">
         <div><b>1 – 6</b><span>hit the shown number to grapple (wrong key = −0.75 s)</span></div>
         <div><b>TWIN TREES</b><span>two numbers appear — hit both to cannonball through</span></div>

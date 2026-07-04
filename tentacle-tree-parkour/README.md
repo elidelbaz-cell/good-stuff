@@ -1,9 +1,16 @@
 # Tentacle Treetops 🐙🛸
 
-A first-person 3D parkour game on an alien world. You crash-landed in a
-bioluminescent grove and your saucer is parked at the far end — grapple
-the canopy with your tentacles and punch every little gunner between you
-and home.
+A first-person 3D parkour game on an alien world. You are **Splort the
+Slippery** — two tentacles, 4,362 counts of grand larceny, one stolen
+moon — and the Galactic Patrol just found your hideout. An opening
+cutscene plays out the arrest attempt; then it's up to you.
+
+- **Level 1 — THE ESCAPE.** Two patrol saucers chase you through the
+  grove *in real time* (your slow-mo doesn't slow them — dawdle in a QTE
+  and the 🚨 distance meter drops). Get caught and you're BUSTED. Reach
+  the deep grove and you've lost them.
+- **Level 2+ — THE WAY HOME.** Grapple your way back to your saucer,
+  punching every little gunner along the way.
 
 ## How to play
 
@@ -37,9 +44,10 @@ in range — the crosshair glows magenta when someone is punchable:
 
 ## The goal
 
-Reach your saucer at the end of the grove. Each level the grove gets
-longer, gunners get more numerous, and twin trees more common. Score
-carries across levels; dying restarts the current level.
+Lose the patrol (level 1), then reach your saucer at the end of each
+grove. Each level gets longer, gunners more numerous, twin trees more
+common. Score carries across levels; dying restarts the current level
+(the cutscene only plays once per session — retries skip straight in).
 
 ## Controls
 

@@ -24,6 +24,8 @@ const ui = {
   vignette: $('vignette'), flash: $('flash'), crosshair: $('crosshair'),
   overlay: $('overlay'), oTitle: $('o-title'), oSub: $('o-sub'), oControls: $('o-controls'),
   playBtn: $('playbtn'), hint: $('hint'), pops: $('pops'),
+  chaseChip: $('chase-chip'), chase: $('stat-chase'),
+  cutscene: $('cutscene'), cutSpeaker: $('cut-speaker'), cutText: $('cut-text'), cutSkip: $('cut-skip'),
 };
 
 // ---------------------------------------------------------- tiny synth sfx
@@ -69,6 +71,7 @@ const sfx = {
   splat: () => { tone(200, 0.5, 'sawtooth', 0.25, 40); whoosh(0.3, 0.3); },
   fall: () => tone(700, 1.0, 'sine', 0.15, 120),
   win: () => { tone(523, 0.15, 'square', 0.13); setTimeout(() => tone(659, 0.15, 'square', 0.13), 130); setTimeout(() => tone(784, 0.3, 'square', 0.13), 260); setTimeout(() => tone(1047, 0.5, 'square', 0.13), 420); },
+  siren: () => { tone(620, 0.28, 'square', 0.09, 880); setTimeout(() => tone(880, 0.28, 'square', 0.09, 620), 300); },
 };
 
 // ---------------------------------------------------------- three setup
@@ -119,6 +122,10 @@ const MAT = {
   reticle: new THREE.MeshBasicMaterial({ color: 0x4dffe1, side: THREE.DoubleSide, transparent: true, opacity: 0.95 }),
   spore: new THREE.MeshBasicMaterial({ color: 0xb03fd0 }),
   trail: new THREE.MeshBasicMaterial({ color: 0xc0a4ff }),
+  body: new THREE.MeshLambertMaterial({ color: 0x7a4fd0 }),
+  eyeW: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+  lightRed: new THREE.MeshBasicMaterial({ color: 0xff3b3b }),
+  lightBlue: new THREE.MeshBasicMaterial({ color: 0x3b8cff }),
   hull: new THREE.MeshLambertMaterial({ color: 0x8a93b8 }),
   hullDark: new THREE.MeshLambertMaterial({ color: 0x3c4260 }),
   dome: new THREE.MeshLambertMaterial({ color: 0x7ef2dd, emissive: 0x2ac5b5, emissiveIntensity: 0.7, transparent: true, opacity: 0.85 }),
@@ -180,9 +187,16 @@ scene.add(skyGroup);
 const trees = [];     // { anchor, top, group, twin }
 const platforms = []; // { group, baseY, phase }
 const enemies = [];   // { group, muzzle, platform, offset, dead, removed, cd, vel, spin, life, flashT }
+const pursuers = [];  // level-1 patrol saucers: { group, lightA, lightB, cd, phase, homeY }
 let heading = 0;
 let level = 1;
 let ship = null;      // { group, anchor }
+let chaseActive = false;
+let chaseDist = Infinity;
+let lastSiren = -10;
+let cutsceneSeen = false;
+let cut = null;       // active cutscene { line, t, from, to, look, text, dur }
+let cutBody = null;   // your third-person body, only visible during the cutscene
 
 function randPick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function treeCount() { return 14 + (level - 1) * 3; }
@@ -350,6 +364,28 @@ function makeShip() {
   ship = { group, lights, anchor: pos.clone().add(new THREE.Vector3(0, -1.2, 0)), baseY: pos.y, phase: 0 };
 }
 
+function makePatrolSaucer(pos) {
+  const group = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1.9, 16, 10), MAT.hull);
+  hull.scale.set(1, 0.34, 1);
+  group.add(hull);
+  const band = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.3, 8, 22), MAT.hullDark);
+  band.rotation.x = Math.PI / 2;
+  group.add(band);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(0.8, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), MAT.dome);
+  dome.position.y = 0.35;
+  group.add(dome);
+  const lightA = new THREE.Mesh(new THREE.SphereGeometry(0.24, 6, 6), MAT.lightRed);
+  lightA.position.set(-0.5, 0.95, 0);
+  group.add(lightA);
+  const lightB = new THREE.Mesh(new THREE.SphereGeometry(0.24, 6, 6), MAT.lightBlue);
+  lightB.position.set(0.5, 0.95, 0);
+  group.add(lightB);
+  group.position.copy(pos);
+  scene.add(group);
+  pursuers.push({ group, lightA, lightB, cd: 2 + Math.random(), phase: Math.random() * Math.PI * 2, homeY: pos.y });
+}
+
 function disposeGroup(group) {
   group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
   scene.remove(group);
@@ -359,7 +395,14 @@ function buildWorld() {
   heading = 0;
   const n = treeCount();
   for (let i = 0; i < n; i++) makeTree(i);
-  makeShip();
+  if (level === 1) {
+    // level 1: no ship yet — just the Galactic Patrol parked at your hideout
+    const T = trees[0].top;
+    makePatrolSaucer(new THREE.Vector3(T.x + 12, T.y + 6, T.z + 32));
+    makePatrolSaucer(new THREE.Vector3(T.x - 14, T.y + 8, T.z + 29));
+  } else {
+    makeShip();
+  }
 }
 
 function clearWorld() {
@@ -373,6 +416,9 @@ function clearWorld() {
   projectiles.length = 0;
   for (const p of particles) { p.life = 0; p.mesh.visible = false; }
   if (ship) { disposeGroup(ship.group); ship = null; }
+  for (const u of pursuers) disposeGroup(u.group);
+  pursuers.length = 0;
+  if (cutBody) { disposeGroup(cutBody); cutBody = null; }
 }
 
 // ---------------------------------------------------------- projectiles & particles
@@ -420,7 +466,7 @@ function makeTube() {
   scene.add(m);
   return m;
 }
-const idleTubes = [makeTube(), makeTube(), makeTube()];
+const idleTubes = [makeTube(), makeTube()]; // exactly two tentacles — that's all Splort has
 const grappleTube = makeTube();
 grappleTube.visible = false;
 const grappleFist = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 10), MAT.sucker);
@@ -471,7 +517,8 @@ const _camR = new THREE.Vector3(), _camU = new THREE.Vector3(), _camF = new THRE
 
 function getTarget() {
   if (P.targetIndex < trees.length) return { pos: trees[P.targetIndex].anchor, ship: false };
-  return { pos: ship.anchor, ship: true };
+  if (ship) return { pos: ship.anchor, ship: true };
+  return { pos: trees[trees.length - 1].anchor, ship: false }; // level 1 has no ship
 }
 
 function reset(carryScore) {
@@ -487,6 +534,10 @@ function reset(carryScore) {
     deadReason: '', deadSub: '', punchAnim: null, tumble: 0,
   });
   P.vel.set(0, 0, 0);
+  chaseActive = false;
+  chaseDist = Infinity;
+  cut = null;
+  ui.cutscene.classList.add('hidden');
   buildWorld();
   P.pos.copy(trees[0].top).add(_v1.set(0, 1.5, 0));
   ts = 1; tsTarget = 1; shake = 0; roll = 0; rollTarget = 0;
@@ -595,6 +646,8 @@ function arrive() {
   shake = Math.min(1, shake + 0.25);
   P.targetIndex += 1;
 
+  if (level === 1 && P.targetIndex >= trees.length) { winLevel(); return; } // deep enough in — you lost them
+
   if (P.cannonEarned) {
     // launch a ballistic spin over to the twin tree — no QTE needed, you earned it
     P.cannonEarned = false;
@@ -630,8 +683,13 @@ function winLevel() {
   }
   ui.best.textContent = best;
   sfx.win();
-  ui.oTitle.textContent = '🛸 YOU MADE IT HOME!';
-  ui.oSub.innerHTML = `Level ${level} cleared. The saucer hums happily.<br><b>${P.treesChained}</b> trees chained &nbsp;·&nbsp; <b>${P.punches}</b> gunners punched &nbsp;·&nbsp; score <b>${P.score}</b> (best ${best})`;
+  if (level === 1) {
+    ui.oTitle.textContent = '🚨 YOU LOST THEM!';
+    ui.oSub.innerHTML = `The patrol sirens fade into the fog. Now — where did you park the saucer?<br><b>${P.treesChained}</b> trees chained &nbsp;·&nbsp; <b>${P.punches}</b> gunners punched &nbsp;·&nbsp; score <b>${P.score}</b> (best ${best})`;
+  } else {
+    ui.oTitle.textContent = '🛸 YOU MADE IT HOME!';
+    ui.oSub.innerHTML = `Level ${level} cleared. The saucer hums happily... but keep moving — the patrol never sleeps.<br><b>${P.treesChained}</b> trees chained &nbsp;·&nbsp; <b>${P.punches}</b> gunners punched &nbsp;·&nbsp; score <b>${P.score}</b> (best ${best})`;
+  }
   ui.oControls.classList.add('hidden');
   ui.playBtn.textContent = `NEXT LEVEL  [SPACE]`;
   ui.overlay.classList.remove('hidden');
@@ -769,6 +827,178 @@ function hurt(dmg) {
   }
 }
 
+// ---------------------------------------------------------- the Galactic Patrol (level 1 chase)
+function busted() {
+  sfx.siren();
+  die('BUSTED!', 'The Galactic Patrol cuffed both tentacles. 4,362 counts of grand larceny, one count of resisting arrest.');
+}
+
+function updatePursuers(rdt) {
+  if (!pursuers.length) return;
+  let minD = Infinity;
+  const hunting = chaseActive &&
+    (P.state === 'perched' || P.state === 'qte' || P.state === 'zip' || P.state === 'cannonball' || P.state === 'falling');
+  for (const u of pursuers) {
+    // alternating red/blue strobes
+    u.lightA.visible = Math.sin(elapsed * 14 + u.phase) > 0;
+    u.lightB.visible = !u.lightA.visible;
+    if (hunting) {
+      _v1.copy(P.pos).sub(u.group.position);
+      const d = _v1.length();
+      minD = Math.min(minD, d);
+      // the patrol flies in REAL time — your slow-mo doesn't slow them down.
+      // Dawdle in the QTE and they close the gap; chain fast and you pull away.
+      if (d > 5) u.group.position.addScaledVector(_v1.normalize(), Math.min(12 * rdt, d - 4.5));
+      u.group.rotation.y = Math.atan2(_v1.x, _v1.z);
+      u.group.rotation.z = Math.sin(elapsed * 3 + u.phase) * 0.08;
+      if (d < 6.5 && P.state !== 'falling') { busted(); return; }
+      u.cd -= rdt;
+      if (u.cd <= 0 && d < 70 && canBeShot()) {
+        u.cd = 2.2 + Math.random() * 1.5;
+        const lead = _v2.copy(P.pos).addScaledVector(P.vel, d / 30 * 0.4);
+        lead.x += (Math.random() - 0.5) * 4;
+        lead.y += (Math.random() - 0.5) * 4;
+        lead.z += (Math.random() - 0.5) * 4;
+        shootAt(u.group.position.clone().add(_v3.set(0, -0.4, 0)), lead, 30);
+        sfx.shot(0.06);
+      }
+    } else {
+      u.group.position.y = u.homeY + Math.sin(elapsed * 1.5 + u.phase) * 0.4;
+      u.group.rotation.z = 0;
+    }
+  }
+  chaseDist = minD;
+  if (hunting && minD < 30 && elapsed - lastSiren > 1.6) { lastSiren = elapsed; sfx.siren(); }
+}
+
+// ---------------------------------------------------------- opening cutscene
+const CUT_LINES = [
+  { who: 'GALACTIC PATROL', text: 'SPLORT THE SLIPPERY! By order of the Galactic Patrol you are under arrest for 4,362 counts of grand larceny... and one (1) stolen moon.', dur: 6.0, cam: 'wide' },
+  { who: 'GALACTIC PATROL', text: 'Put your tentacles where we can see them. Yes. BOTH of them.', dur: 4.2, cam: 'saucer' },
+  { who: 'SPLORT', text: 'Heh... you’ll have to catch me first.', dur: 3.4, cam: 'hero' },
+  { who: '', text: '\u{1F6A8} ESCAPE THROUGH THE TREES — LOSE THEM!', dur: 1.5, cam: 'dive' },
+];
+
+function buildCutBody() {
+  cutBody = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 0.55, 6, 12), MAT.body);
+  cutBody.add(body);
+  for (const sx of [-0.2, 0.2]) {
+    const ew = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 10), MAT.eyeW);
+    ew.position.set(sx, 0.28, 0.42);
+    cutBody.add(ew);
+    const eb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), MAT.eyeB);
+    eb.position.set(sx, 0.28, 0.54);
+    cutBody.add(eb);
+  }
+  // the famous two tentacles, raised defiantly
+  for (const side of [-1, 1]) {
+    const pts = [
+      new THREE.Vector3(side * 0.35, -0.3, 0),
+      new THREE.Vector3(side * 0.9, 0.1, 0.15),
+      new THREE.Vector3(side * 1.15, 0.9, 0.1),
+      new THREE.Vector3(side * 1.0, 1.5, -0.1),
+    ];
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 12, 0.11, 6, false), MAT.tentacle);
+    cutBody.add(tube);
+  }
+  const T = trees[0].top;
+  cutBody.position.set(T.x, T.y + 1.1, T.z);
+  // face the patrol saucers
+  const mid = pursuers[0].group.position.clone().add(pursuers[1].group.position).multiplyScalar(0.5);
+  cutBody.rotation.y = Math.atan2(mid.x - T.x, mid.z - T.z);
+  scene.add(cutBody);
+}
+
+function cutCam(name) {
+  const T = trees[0].top;
+  const s0 = pursuers[0].group.position, s1 = pursuers[1].group.position;
+  const mid = s0.clone().add(s1).multiplyScalar(0.5);
+  if (name === 'wide') return {
+    from: new THREE.Vector3(T.x + 20, T.y + 9, T.z + 26),
+    to: new THREE.Vector3(T.x + 14, T.y + 6, T.z + 22),
+    look: mid.clone().lerp(T, 0.4),
+  };
+  if (name === 'saucer') return {
+    from: s0.clone().add(new THREE.Vector3(5, 1.5, 5)),
+    to: s0.clone().add(new THREE.Vector3(3, 0.6, 3)),
+    look: s0.clone(),
+  };
+  if (name === 'hero') return {
+    from: new THREE.Vector3(T.x + (mid.x - T.x) * 0.3, T.y + 1.6, T.z + (mid.z - T.z) * 0.3),
+    to: new THREE.Vector3(T.x + (mid.x - T.x) * 0.18, T.y + 1.3, T.z + (mid.z - T.z) * 0.18),
+    look: new THREE.Vector3(T.x, T.y + 1.4, T.z),
+  };
+  // 'dive': swoop from wherever we are into Splort's eyes
+  return {
+    from: camera.position.clone(),
+    to: new THREE.Vector3(T.x, T.y + 1.9, T.z),
+    look: trees[1].anchor.clone(),
+  };
+}
+
+function startCutscene() {
+  cutsceneSeen = true;
+  P.state = 'cutscene';
+  buildCutBody();
+  ui.crosshair.classList.add('hidden');
+  ui.hint.classList.add('hidden');
+  ui.cutscene.classList.remove('hidden');
+  cut = { line: -1, t: 0, from: null, to: null, look: null, text: '', dur: 0 };
+  nextCutLine();
+  sfx.siren();
+}
+
+function nextCutLine() {
+  cut.line += 1;
+  if (cut.line >= CUT_LINES.length) { endCutscene(); return; }
+  const L = CUT_LINES[cut.line];
+  const cam = cutCam(L.cam);
+  cut.t = 0;
+  cut.from = cam.from; cut.to = cam.to; cut.look = cam.look;
+  cut.text = L.text; cut.dur = L.dur;
+  ui.cutSpeaker.textContent = L.who;
+  ui.cutSpeaker.classList.toggle('hidden', !L.who);
+  ui.cutText.classList.toggle('system', !L.who);
+  ui.cutText.textContent = '';
+  if (L.cam === 'dive') sfx.zip();
+}
+
+function endCutscene() {
+  cut = null;
+  if (cutBody) { disposeGroup(cutBody); cutBody = null; }
+  ui.cutscene.classList.add('hidden');
+  ui.crosshair.classList.remove('hidden');
+  P.state = 'perched';
+  camFwd.copy(getTarget().pos).sub(P.pos).setY(0).normalize();
+  ui.hint.textContent = "\u{1F6A8} THEY'RE COMING — SPACE or CLICK to run!";
+  ui.hint.classList.remove('hidden');
+}
+
+function updateCutscene(rdt) {
+  if (!cut) return;
+  cut.t += rdt;
+  const L = CUT_LINES[cut.line];
+  const k = Math.min(1, cut.t / cut.dur);
+  const e = k * k * (3 - 2 * k); // smoothstep
+  camera.position.lerpVectors(cut.from, cut.to, e);
+  camera.lookAt(cut.look);
+  const chars = Math.floor(cut.t * 42);
+  ui.cutText.textContent = L.text.slice(0, chars);
+  if (cut.t >= cut.dur + (L.cam === 'dive' ? 0 : 0.8)) nextCutLine();
+}
+
+function advanceCutscene() {
+  if (!cut) return;
+  const L = CUT_LINES[cut.line];
+  if (ui.cutText.textContent.length < L.text.length) {
+    // first click: finish the line, second click: next line
+    cut.t = Math.max(cut.t, L.text.length / 42);
+  } else {
+    nextCutLine();
+  }
+}
+
 // ---------------------------------------------------------- enemies update
 function canBeShot() {
   return P.state === 'qte' || P.state === 'zip' || P.state === 'perched' || P.state === 'cannonball';
@@ -847,8 +1077,8 @@ function updateTentacles(rdt) {
   // fast zips can never fold a tube back through the near plane.
   const lagX = THREE.MathUtils.clamp(P.vel.dot(_camR) * -0.008, -0.4, 0.4);
   const lagY = THREE.MathUtils.clamp(P.vel.dot(_camU) * -0.008, -0.3, 0.3);
-  const bases = [[-0.45, -0.38], [0.45, -0.38], [0.0, -0.5]];
-  for (let i = 0; i < 3; i++) {
+  const bases = [[-0.45, -0.38], [0.45, -0.38]];
+  for (let i = 0; i < 2; i++) {
     const [bx, by] = bases[i];
     const sway = Math.sin(t * 5 + i * 2.1) * 0.2;
     const sway2 = Math.cos(t * 4 + i * 1.6) * 0.15;
@@ -926,7 +1156,13 @@ function updateHUD() {
   ui.hp.classList.toggle('low', P.hp <= 30);
   ui.trees.textContent = P.treesChained;
   ui.score.textContent = P.score;
-  ui.hops.textContent = Math.max(0, trees.length - P.targetIndex + 1);
+  ui.hops.textContent = Math.max(0, trees.length - P.targetIndex + (level === 1 ? 0 : 1));
+  const chasing = level === 1 && pursuers.length > 0 && P.state !== 'menu' && P.state !== 'cutscene';
+  ui.chaseChip.classList.toggle('hidden', !chasing);
+  if (chasing) {
+    ui.chase.textContent = chaseActive && isFinite(chaseDist) ? Math.round(chaseDist) + 'm' : '—';
+    ui.chaseChip.classList.toggle('close', chaseActive && chaseDist < 25);
+  }
   if (P.state === 'qte') {
     const frac = Math.max(0, P.qteTime / QTE_TIME);
     ui.qteRing.style.strokeDashoffset = String(283 * (1 - frac));
@@ -954,6 +1190,10 @@ function frame() {
         camera.position.set(c.x + Math.cos(a) * 27, c.y + 10, c.z + Math.sin(a) * 27);
         camera.lookAt(c.x, c.y - 2, c.z);
       }
+      break;
+
+    case 'cutscene':
+      updateCutscene(rdt);
       break;
 
     case 'perched':
@@ -1038,8 +1278,11 @@ function frame() {
 
   updateEnemies(wdt);
   updateProjectiles(wdt);
+  updatePursuers(rdt);
   updateParticles(Math.max(wdt, rdt * 0.3));
-  if (P.state !== 'menu') updateCamera(rdt);
+  if (P.state !== 'menu' && P.state !== 'cutscene') updateCamera(rdt);
+  const firstPerson = P.state === 'perched' || P.state === 'qte' || P.state === 'zip' || P.state === 'cannonball' || P.state === 'falling';
+  for (const tube of idleTubes) tube.visible = firstPerson;
   updateTentacles(rdt);
   updateHUD();
 
@@ -1051,6 +1294,7 @@ renderer.setAnimationLoop(frame);
 function leap() {
   if (P.state !== 'perched') return;
   ui.hint.classList.add('hidden');
+  if (level === 1) chaseActive = true; // the moment you move, the patrol gives chase
   _v1.copy(getTarget().pos).sub(P.pos).normalize();
   P.vel.set(_v1.x * 8, 11, _v1.z * 8);
   P.pos.y += 0.2;
@@ -1064,7 +1308,8 @@ window.addEventListener('keydown', (ev) => {
   if (m) { handleNumber(parseInt(m[1], 10)); return; }
   if (ev.code === 'Space') {
     ev.preventDefault();
-    if (P.state === 'perched') leap();
+    if (P.state === 'cutscene') advanceCutscene();
+    else if (P.state === 'perched') leap();
     else if (P.state === 'dead') reset(false);
     else if (P.state === 'won') { level += 1; reset(true); }
     else if (P.state === 'menu') startGame();
@@ -1082,7 +1327,9 @@ window.addEventListener('mousemove', (ev) => {
 renderer.domElement.addEventListener('pointerdown', (ev) => {
   audioCtx();
   if (ev.button !== 0) return;
-  if (P.state === 'perched') {
+  if (P.state === 'cutscene') {
+    advanceCutscene();
+  } else if (P.state === 'perched') {
     // punch if a gunner is already lined up, otherwise leap
     if (pickPunchTarget()) tryPunch(); else leap();
   } else if (P.state === 'qte' || P.state === 'zip' || P.state === 'cannonball') {
@@ -1101,7 +1348,12 @@ function startGame() {
   audioCtx();
   level = 1;
   reset(false);
+  if (!cutsceneSeen) startCutscene();
 }
+ui.cutSkip.addEventListener('pointerdown', (ev) => {
+  ev.stopPropagation();
+  if (cut) endCutscene();
+});
 ui.playBtn.addEventListener('click', () => {
   if (P.state === 'won') { level += 1; reset(true); }
   else if (P.state === 'dead') reset(false);
@@ -1114,4 +1366,4 @@ P.pos.copy(trees[0].top).add(new THREE.Vector3(0, 1.5, 0));
 
 // exposed for automated smoke tests
 window.__game = P;
-window.__debug = { P, trees, platforms, enemies, beginQTE, getTarget, ship: () => ship };
+window.__debug = { P, trees, platforms, enemies, pursuers, beginQTE, getTarget, ship: () => ship, endCutscene: () => cut && endCutscene(), chase: () => ({ chaseActive, chaseDist, level }) };
