@@ -1,68 +1,62 @@
-# Tentacle Treetops 🐙🛸
+# Tentacle Treetops: Open Grove 🐙🛸
 
-A first-person 3D parkour game on an alien world. You are **Splort the
+A free-roam, first-person alien parkour game. You are **Splort the
 Slippery** — two tentacles, 4,362 counts of grand larceny, one stolen
-moon — and the Galactic Patrol just found your hideout. An opening
-cutscene plays out the arrest attempt; then it's up to you.
-
-- **Level 1 — THE ESCAPE.** Two patrol saucers chase you through the
-  grove *in real time* (your slow-mo doesn't slow them — dawdle in a QTE
-  and the 🚨 distance meter drops). Get caught and you're BUSTED. Reach
-  the deep grove and you've lost them.
-- **Level 2+ — THE WAY HOME.** Grapple your way back to your saucer,
-  punching every little gunner along the way.
+moon — cornered on a backwater world by the Galactic Patrol. There is
+exactly **one ship left off this planet**. Find it. Take it.
 
 ## How to play
 
 **Just open `index.html` in a browser.** It's fully self-contained
 (three.js is bundled in) — no server, no install.
 
-## The grapple mechanic
+## The world
 
-1. Leap off the crash site — **time slows to a crawl**.
-2. A number **1–6** appears with a **3.5-second** timer (real time).
-3. Hit that number (keyboard or click the on-screen key) → your tentacle
-   fires and you **zip at full speed** to the next tree.
-4. Land → time slows again → new number. Chain to the ship.
-5. Miss the window → the tentacles give up and **you fall**.
-6. Wrong key costs you **0.75 seconds**.
+One big open grove (~150 grapple trees) you can roam in any direction:
 
-## Maneuvers
+- **3 villages** (green light beams) with quest-giving elders
+- **20 floating platforms** manned by hostile little gunners
+- A **patrol station** (red beam) the saucers fly from
+- The **LAST SHIP**, shielded on a mesa (cyan beam → gold when unlocked)
 
-- **Cannonball** — when two trees grow close together, the QTE shows
-  **two numbers**. Hit both in order and you blast through the first tree
-  and barrel-roll a ballistic arc to the second — no second QTE, +30
-  points, and any gunner you barrel through gets smushed.
+## Traversal
 
-## The little gunners
+Look with the mouse (push toward the screen edge or use A/D to turn),
+then SPACE/click to grapple at the tree you're facing. Time slows —
+hit the shown number (1–6) within **3.5 s** or you fall. A **magenta
+reticle** means twin trees: two numbers, hit both to **cannonball**
+through them in a full barrel roll, smushing anyone you pass.
 
-They camp on **floating platforms** beside your flight path and shoot at
-you (their bolts crawl through slow-mo — watch them drift past).
-**Left click** (or **E**) auto-fires a tentacle punch at the nearest one
-in range — the crosshair glows magenta when someone is punchable:
-+25 points, +10 HP.
+## Wanted ★★★
 
-## The goal
+Punching patrol goons is, technically, a crime. Your heat meter fills;
+each star sends another patrol saucer after you — and they fly in
+**real time**, so slow-mo doesn't save you. Escape by breaking away:
+stay out of their reach and the heat cools until they give up. Get
+caught → **BUSTED** (score fine, respawn). Shot down or splatted →
+respawn at the nearest safe pad.
 
-Lose the patrol (level 1), then reach your saucer at the end of each
-grove. Each level gets longer, gunners more numerous, twin trees more
-common. Score carries across levels; dying restarts the current level
-(the cutscene only plays once per session — retries skip straight in).
+## Quests (3 parts → 1 ship)
+
+| Village | Quest | Reward |
+| --- | --- | --- |
+| Spore village | **Spore Harvest** — collect 6 glow-spores | FUEL CELL |
+| Grove village | **Bully Busters** — punch 5 marked gunners | IGNITION CRYSTAL |
+| Runner village | **The Spore-Runner Race** — 5 rings in 75 s | STAR MAP |
+
+Collect all 3 parts and the ship's shield drops — but the patrol finds
+out, your wanted maxes out permanently, and the finale is a full-map
+chase to the gold beam. Reach the ship → **OFF-WORLD AT LAST**.
 
 ## Controls
 
 | Key | Action |
 | --- | --- |
-| `1`–`6` | Grapple QTE — hit the shown number(s) |
-| Left click / `E` | Auto tentacle-punch the nearest gunner |
-| `Space` | Leap from the crash site / next level |
-| `R` | Restart after you splat |
-| Mouse | Look around slightly while flying |
-
-## Scoring
-
-+10 per tree, +25 per gunner punched, +30 per cannonball, +100 per level.
-Best score is saved locally.
+| Mouse | Look / steer (screen-edge turning), aim punches |
+| `Space` / click | Grapple toward where you're looking |
+| `1`–`6` | Slow-mo QTE numbers |
+| Click / `E` | Auto tentacle-punch nearest gunner |
+| `Esc` | Decline a quest |
 
 ## Rebuilding from source
 
