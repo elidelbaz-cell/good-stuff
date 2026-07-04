@@ -1,0 +1,40 @@
+<div id="hud">
+  <div id="topbar">
+    <div id="hpwrap"><div id="hpbar"></div></div>
+    <div id="stats">🌲 <span id="stat-trees">0</span> &nbsp;·&nbsp; ⭐ <span id="stat-score">0</span> &nbsp;·&nbsp; best <span id="stat-best">0</span></div>
+  </div>
+
+  <div id="qte" class="hidden">
+    <div id="qte-label">PRESS</div>
+    <div id="qte-circle">
+      <svg viewBox="0 0 100 100">
+        <circle class="ring-bg" cx="50" cy="50" r="45"></circle>
+        <circle id="qte-ring" cx="50" cy="50" r="45"></circle>
+      </svg>
+      <div id="qte-num">?</div>
+    </div>
+    <div id="qte-time">5.0</div>
+    <div id="qte-keys">
+      <button class="qkey" data-n="1">1</button><button class="qkey" data-n="2">2</button><button class="qkey" data-n="3">3</button><button class="qkey" data-n="4">4</button><button class="qkey" data-n="5">5</button><button class="qkey" data-n="6">6</button>
+    </div>
+  </div>
+
+  <div id="hint" class="hidden"></div>
+  <div id="pops"></div>
+  <div id="vignette"></div>
+  <div id="flash"></div>
+
+  <div id="overlay">
+    <div id="panel">
+      <h1 id="o-title">TENTACLE TREETOPS</h1>
+      <p id="o-sub">Grapple through the canopy with your tentacles. When time slows down, hit the number before 5 seconds run out — or you drop.</p>
+      <div id="o-controls">
+        <div><b>1 – 6</b><span>hit the shown number to grapple (wrong key = −1 s)</span></div>
+        <div><b>E / CLICK</b><span>punch a nearby little gunner off their tree</span></div>
+        <div><b>SPACE</b><span>leap from the first tree</span></div>
+        <div><b>R</b><span>restart after you splat</span></div>
+      </div>
+      <button id="playbtn">PLAY</button>
+    </div>
+  </div>
+</div>

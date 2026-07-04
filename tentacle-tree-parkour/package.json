@@ -1,0 +1,14 @@
+{
+  "name": "tentacle-tree-parkour",
+  "version": "1.0.0",
+  "private": true,
+  "description": "3D tree parkour game — grapple through the canopy with tentacles, slow-mo number QTEs, punch the little gunners.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0",
+    "three": "^0.161.0"
+  }
+}
