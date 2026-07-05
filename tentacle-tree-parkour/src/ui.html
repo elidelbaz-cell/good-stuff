@@ -1,9 +1,12 @@
 <div id="hud">
   <div id="topbar">
     <div id="hpwrap"><div id="hpbar"></div></div>
-    <div id="stats">⭐ <span id="stat-score">0</span> &nbsp;·&nbsp; best <span id="stat-best">0</span> &nbsp;·&nbsp; 🔧 <span id="stat-parts">0/3</span> &nbsp;·&nbsp; <span id="stat-wanted">☆☆☆</span></div>
+    <div id="stats">⭐ <span id="stat-score">0</span> &nbsp;·&nbsp; best <span id="stat-best">0</span> &nbsp;·&nbsp; <span id="stat-wanted">☆☆☆</span></div>
   </div>
-  <div id="quest-line" class="hidden"></div>
+  <div id="questbar" class="hidden">
+    <div id="quest-title">QUEST</div>
+    <div id="quest-obj">objective</div>
+  </div>
 
   <div id="crosshair" class="hidden"></div>
 
@@ -37,17 +40,17 @@
   <div id="pops"></div>
   <div id="vignette"></div>
   <div id="flash"></div>
+  <div id="fade"></div>
 
   <div id="overlay">
     <div id="panel">
       <h1 id="o-title">TENTACLE TREETOPS</h1>
-      <p id="o-sub">You are Splort the Slippery — the most wanted tentacle in the galaxy — cornered on a backwater alien world. Free-roam the glowing grove, run quests for the villages, brawl with the Galactic Patrol and shake your wanted stars... because there is exactly <b>one ship left off this planet</b>, and it needs 3 parts before its shield drops.</p>
+      <p id="o-sub">You are Splort the Slippery — the most wanted tentacle in the galaxy. Escape the patrol raid through the grove, wash up on <b>Novoya Isle</b>, and work the island: get a disguise from the Mask Maker, earn a zapper, run errands for junk dealers and mechanics... all to get the island's <b>one old rocket</b> flying before the patrol figures out who's under the mask.</p>
       <div id="o-controls">
-        <div><b>MOUSE</b><span>look around (push to the screen edge to turn)</span></div>
-        <div><b>SPACE / CLICK</b><span>grapple to the tree you're looking at</span></div>
-        <div><b>1 – 6</b><span>slow-mo QTE: hit the number in 3.5 s or you fall</span></div>
-        <div><b>TWIN TREES</b><span>magenta reticle = two numbers = cannonball</span></div>
-        <div><b>LEFT CLICK / E</b><span>auto tentacle-punch the nearest gunner</span></div>
+        <div><b>WASD / MOUSE</b><span>walk and look around on the island</span></div>
+        <div><b>SPACE</b><span>grapple the circled tree (or jump) · numbers 1–6 in the slow-mo</span></div>
+        <div><b>WALK UP TO PEOPLE</b><span>they'll talk to you — quests are how you get off this rock</span></div>
+        <div><b>LEFT CLICK / E</b><span>tentacle-punch · becomes your ZAPPER once you earn it</span></div>
       </div>
       <button id="playbtn">PLAY</button>
     </div>

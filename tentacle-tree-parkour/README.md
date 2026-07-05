@@ -1,62 +1,60 @@
-# Tentacle Treetops: Open Grove 🐙🛸
+# Tentacle Treetops: The Last Rocket 🐙🚀
 
-A free-roam, first-person alien parkour game. You are **Splort the
-Slippery** — two tentacles, 4,362 counts of grand larceny, one stolen
-moon — cornered on a backwater world by the Galactic Patrol. There is
-exactly **one ship left off this planet**. Find it. Take it.
+A two-act, first-person alien adventure. You are **Splort the Slippery** —
+two tentacles, 4,362 counts of grand larceny, one stolen moon.
 
 ## How to play
 
-**Just open `index.html` in a browser.** It's fully self-contained
-(three.js is bundled in) — no server, no install.
+**Just open `index.html` in a browser.** Fully self-contained (three.js
+is bundled in) — no server, no install.
 
-## The world
+## Act 1 — The Escape
 
-One big open grove (~150 grapple trees) you can roam in any direction:
+The Galactic Patrol raids your hideout (opening cutscene). Grapple
+tree-to-tree through the grove to the coast, hitting the slow-mo number
+QTE (1–6 within 3.5 s) each hop while the sirens chase you. Reach the
+end and you dive off the edge...
 
-- **3 villages** (green light beams) with quest-giving elders
-- **20 floating platforms** manned by hostile little gunners
-- A **patrol station** (red beam) the saucers fly from
-- The **LAST SHIP**, shielded on a mesa (cyan beam → gold when unlocked)
+## Act 2 — Novoya Isle (free roam)
 
-## Traversal
+...and wash up on an island you explore **on foot**:
 
-Look with the mouse (push toward the screen edge or use A/D to turn),
-then SPACE/click to grapple at the tree you're facing. Time slows —
-hit the shown number (1–6) within **3.5 s** or you fall. A **magenta
-reticle** means twin trees: two numbers, hit both to **cannonball**
-through them in a full barrel roll, smushing anyone you pass.
+- **WASD** to walk, **mouse** to look (push to the screen edge to turn).
+- **SPACE** grapples when a tree is circled in your reticle — optional
+  traversal for shortcuts and rooftops — or jumps when there's no tree.
+- **Walk up to anyone** and they'll talk to you. Quests are how you get
+  off this rock.
 
-## Wanted ★★★
+### The quest chain
 
-Punching patrol goons is, technically, a crime. Your heat meter fills;
-each star sends another patrol saucer after you — and they fly in
-**real time**, so slow-mo doesn't save you. Escape by breaking away:
-stay out of their reach and the heat cools until they give up. Get
-caught → **BUSTED** (score fine, respawn). Shot down or splatted →
-respawn at the nearest safe pad.
+Follow the **GOLD beam** to your current objective. The chain:
 
-## Quests (3 parts → 1 ship)
+1. **Blend In** — visit the Mask Maker for a disguise (drops your wanted level).
+2. **Get a Weapon** — Old Zeb the Hunter wants a favor first.
+3. **Camp Cleanout** — punch 4 beach goons out of his old camp.
+4. **Claim your Zapper** — back to Zeb; now **left click shoots** (auto-aim).
+5. **Rocket Rumors** — Rusty the Junk Dealer knows where the one rocket is.
+6. **Scrap Run** — collect 4 pieces of scrap (two are up in the trees — grapple for them).
+7. **The Mechanic** — bring it to Pia; she straightens the old mail rocket out.
+8. **Fuel Heist** — steal a fuel cell from the patrol depot. This gets LOUD.
+9. **Launch!** — sprint back to the rocket and blast off the planet.
 
-| Village | Quest | Reward |
-| --- | --- | --- |
-| Spore village | **Spore Harvest** — collect 6 glow-spores | FUEL CELL |
-| Grove village | **Bully Busters** — punch 5 marked gunners | IGNITION CRYSTAL |
-| Runner village | **The Spore-Runner Race** — 5 rings in 75 s | STAR MAP |
+### Wanted ★★★
 
-Collect all 3 parts and the ship's shield drops — but the patrol finds
-out, your wanted maxes out permanently, and the finale is a full-map
-chase to the gold beam. Reach the ship → **OFF-WORLD AT LAST**.
+Punching depot guards (or being spotted un-disguised) raises your heat;
+each star sends a patrol saucer after you in real time. Break away and it
+cools. Get caught → busted (fined, dumped back on the beach). The disguise
+keeps you cold — until the fuel heist trips the alarm and pins you at ★★★
+for the final run.
 
 ## Controls
 
 | Key | Action |
 | --- | --- |
-| Mouse | Look / steer (screen-edge turning), aim punches |
-| `Space` / click | Grapple toward where you're looking |
-| `1`–`6` | Slow-mo QTE numbers |
-| Click / `E` | Auto tentacle-punch nearest gunner |
-| `Esc` | Decline a quest |
+| `WASD` / arrows | Walk (island) |
+| Mouse | Look / steer |
+| `Space` | Grapple circled tree · jump · numbers 1–6 in slow-mo · advance dialogue |
+| Left click / `E` | Tentacle-punch → **Zapper** once earned |
 
 ## Rebuilding from source
 

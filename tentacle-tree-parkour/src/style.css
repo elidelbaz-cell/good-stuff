@@ -76,15 +76,21 @@ canvas { display: block; position: fixed; inset: 0; z-index: 0; }
   60% { transform: translateX(-7px); } 80% { transform: translateX(4px); }
 }
 
-/* ---------- wanted + quest line ---------- */
+/* ---------- wanted + quest bar ---------- */
 #stat-wanted.hot { color: #ff4fd8; animation: pulse 0.8s ease infinite; }
-#quest-line {
-  position: absolute; top: 62px; left: 50%; transform: translateX(-50%);
-  font-size: 14px; font-weight: 800; letter-spacing: 0.5px; color: #ffe14d;
-  background: rgba(16, 10, 34, 0.55); border-radius: 999px; padding: 5px 16px;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.6); white-space: nowrap; max-width: 92vw;
-  overflow: hidden; text-overflow: ellipsis;
+#questbar {
+  position: absolute; top: 14px; left: 16px; max-width: 320px;
+  background: rgba(16, 10, 34, 0.6); border: 1px solid rgba(255, 225, 77, 0.35);
+  border-left: 4px solid #ffe14d; border-radius: 10px; padding: 8px 14px;
+  backdrop-filter: blur(4px);
 }
+#quest-title { font-size: 13px; font-weight: 900; letter-spacing: 2px; color: #ffe14d; }
+#quest-obj { font-size: 13px; margin-top: 3px; color: rgba(255,255,255,0.88); line-height: 1.35; }
+#fade {
+  position: absolute; inset: 0; background: #05030c; opacity: 0; pointer-events: none;
+  transition: opacity 0.9s ease;
+}
+#fade.on { opacity: 1; }
 .pop.sys {
   font-size: 22px; color: #4dffe1; white-space: nowrap; max-width: 94vw;
   overflow: hidden; text-overflow: ellipsis;
