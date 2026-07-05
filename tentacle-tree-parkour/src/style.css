@@ -31,6 +31,8 @@ canvas { display: block; position: fixed; inset: 0; z-index: 0; }
   border-color: #ff4fd8; transform: translate(-50%, -50%) scale(1.35);
   box-shadow: 0 0 16px rgba(255, 79, 216, 0.7);
 }
+#crosshair.locked { border-style: solid; }
+#crosshair:not(.locked) { border-style: dashed; }
 
 /* ---------- QTE ---------- */
 #qte {
