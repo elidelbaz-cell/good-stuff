@@ -78,6 +78,74 @@ canvas { display: block; position: fixed; inset: 0; z-index: 0; }
   60% { transform: translateX(-7px); } 80% { transform: translateX(4px); }
 }
 
+/* ---------- match UI ---------- */
+#match-hud {
+  position: absolute; top: 14px; right: 16px; text-align: right;
+  background: rgba(16, 10, 34, 0.6); border-radius: 10px; padding: 8px 14px;
+  border: 1px solid rgba(77, 255, 225, 0.3);
+}
+#match-timer { font-size: 22px; font-weight: 900; color: #4dffe1; letter-spacing: 2px; }
+#match-score { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); margin-top: 2px; }
+#killfeed {
+  position: absolute; top: 86px; right: 16px; display: flex; flex-direction: column; gap: 4px;
+  align-items: flex-end; pointer-events: none;
+}
+.kf {
+  font-size: 13px; font-weight: 800; color: #fff; background: rgba(16, 10, 34, 0.65);
+  border-radius: 8px; padding: 4px 10px; border-left: 3px solid #ff4fd8;
+  animation: kfin 0.2s ease;
+}
+@keyframes kfin { 0% { opacity: 0; transform: translateX(20px); } 100% { opacity: 1; } }
+#combo {
+  position: absolute; top: 32%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 30px; font-weight: 900; letter-spacing: 2px; color: #ffe14d;
+  text-shadow: 0 0 18px rgba(255, 225, 77, 0.8), 0 2px 4px rgba(0,0,0,0.8);
+}
+#combo.pop2 { animation: combopop 0.25s ease; }
+@keyframes combopop { 0% { transform: translate(-50%, -50%) scale(1.6); } 100% { transform: translate(-50%, -50%) scale(1); } }
+#scoreboard {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  min-width: 380px; background: rgba(12, 7, 26, 0.9); border: 1px solid rgba(154, 111, 240, 0.5);
+  border-radius: 14px; padding: 16px 20px;
+}
+.board-title { font-size: 14px; font-weight: 900; letter-spacing: 3px; color: #4dffe1; margin-bottom: 10px; text-align: center; }
+.brow { display: grid; grid-template-columns: 1fr 60px 70px; gap: 8px; padding: 5px 8px; font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.9); }
+.brow span:nth-child(2), .brow span:nth-child(3) { text-align: right; }
+.brow.head { color: rgba(255,255,255,0.45); font-size: 11px; letter-spacing: 1px; }
+.brow.you { background: rgba(154, 111, 240, 0.2); border-radius: 8px; color: #ffe14d; }
+.board-hint { text-align: center; font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 8px; }
+
+/* ---------- matchmaking / lobby screens ---------- */
+#mm, #lobby {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(24, 12, 48, 0.7), rgba(10, 6, 22, 0.94));
+  pointer-events: auto;
+}
+.screen-panel {
+  min-width: 420px; max-width: 90vw; background: rgba(12, 7, 26, 0.85);
+  border: 1px solid rgba(154, 111, 240, 0.5); border-radius: 16px; padding: 22px 26px;
+}
+.screen-title { font-size: 16px; font-weight: 900; letter-spacing: 3px; color: #4dffe1; margin-bottom: 14px; text-align: center; }
+.mm-row { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.85); padding: 6px 4px; }
+.mm-row.found { color: #7dff6a; animation: kfin 0.25s ease; }
+.dots { animation: pulse 1s ease infinite; }
+.lb-row {
+  display: flex; justify-content: space-between; font-size: 15px; font-weight: 800;
+  color: rgba(255,255,255,0.9); padding: 8px 10px; border-radius: 8px; margin: 3px 0;
+  background: rgba(255,255,255,0.05);
+}
+.lb-row.you { background: rgba(154, 111, 240, 0.22); color: #ffe14d; }
+.lb-row .rdy { color: #7dff6a; letter-spacing: 1px; }
+#lobby-start { text-align: center; margin-top: 14px; font-size: 15px; font-weight: 900; letter-spacing: 2px; color: #ff4fd8; }
+#lobby-count { font-size: 20px; }
+
+#storybtn {
+  display: block; margin: 12px auto 0; font-size: 14px; font-weight: 900; letter-spacing: 2px;
+  cursor: pointer; padding: 10px 30px; border-radius: 999px; border: 1px solid rgba(154, 111, 240, 0.6);
+  color: #d9c2ff; background: rgba(154, 111, 240, 0.12);
+}
+#storybtn:hover { background: rgba(154, 111, 240, 0.28); }
+
 /* ---------- wanted + quest bar ---------- */
 #stat-wanted.hot { color: #ff4fd8; animation: pulse 0.8s ease infinite; }
 #questbar {

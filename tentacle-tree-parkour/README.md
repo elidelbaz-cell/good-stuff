@@ -1,15 +1,31 @@
-# Tentacle Treetops: Neon Sprawl 🐙🌆🚀
+# SPACE SWINGER 🐙🌆🥊
 
-A GTA-style open city on an alien world — first-person, free-roam, with
-Spider-Man-style tentacle swinging. You are **Splort the Slippery** —
-two tentacles, 4,362 counts of grand larceny, one stolen moon — cornered
-in the neon city of Novoya Sprawl. This city has exactly **one rocket
-left**, and it's got your name on it.
+Third-person tentacle-swinging brawler in the neon alien city of
+Novoya Sprawl. You are Splort the Slippery — and so is everyone else
+in the deathmatch queue.
 
 ## How to play
 
 **Just open `index.html` in a browser.** Fully self-contained (three.js
 is bundled in) — no server, no install.
+
+## Modes
+
+### QUICK MATCH
+Matchmaking → lobby (4 swingers, ready checks, countdown) → **3:00
+DEATHMATCH** in the city. Most KOs wins. Kill feed top-right, hold
+**TAB** for the scoreboard, rematch from the results screen.
+
+> The opponents are AI swingers standing in for live players — a single
+> HTML file can't reach a game server, so the whole online flow
+> (matchmaking, lobby, kill feed, standings) is built like a real
+> multiplayer game with bots filling the slots. Swap in netcode later
+> and the structure is already there.
+
+### STORY
+The wanted-fugitive quest chain: escape the rooftop raid, get a
+disguise from the Mask Maker, earn Old Zeb's zapper, run Rusty's scrap,
+get Pia to fix the last rocket, steal patrol fuel, and blast off.
 
 ## Controls
 
@@ -18,35 +34,15 @@ is bundled in) — no server, no install.
 | **Click / Shift** | Shift-lock mouse look (Esc releases) |
 | **W A S D** | Run |
 | **Space** | Jump · advance dialogue |
-| **Hold E** | Tentacle-swing — fires at the glowing anchor point, pendulum physics, release mid-arc to fly. Pump with W while swinging. |
-| **Left click** | Tentacle-punch → your **Zapper** once you earn it (auto-aim, can shoot down saucers) |
+| **Hold E** | Tentacle-swing — your right tentacle arm stretches out and latches on. Pendulum physics; pump with W; release mid-arc to fly. |
+| **Left click** | Punch combos: jab → hook → **UPPERCUT** (launches). Third-person lunge auto-targets the nearest fighter. |
+| **Tab** | Scoreboard (in a match) |
 
-No number QTEs. Just swing.
+## The swinger
 
-## The city
-
-A neon grid of alien towers (all climbable/swingable — the cyan marker
-shows where your tentacle will latch), glowing street lanes, hovercars,
-and streets full of little alien pedestrians. Punching a civilian is a
-crime, and crime raises your ★★★ wanted level — patrol saucers hunt you
-in real time; break line and the heat cools. Busted → fined and dumped
-back at the plaza.
-
-## The story
-
-The game opens with the Galactic Patrol raiding your rooftop hideout.
-You start WANTED — swing away, lose them, then work the quest chain
-(gold beam marks your objective, quest bar top-left):
-
-1. **Blend In** — the Mask Maker builds you a disguise (clears your heat).
-2. **Get a Weapon** — Old Zeb wants his alley cleaned out first...
-3. **Alley Cleanout** — punch 4 goons.
-4. **Claim your Zapper** — left click now shoots.
-5. **Rocket Rumors** — Rusty the junk dealer knows about the mail rocket.
-6. **Scrap Run** — collect 4 scrap; two are on ROOFTOPS. Swing.
-7. **The Mechanic** — Pia fixes the rocket... but the tank is dry.
-8. **Fuel Heist** — steal a fuel cell from the patrol depot. Alarm. ★★★. Chaos.
-9. **Launch!** — swing across the city to the rocket and BLAST OFF.
+You see Splort from behind: purple body, two tentacle arms. The right
+arm IS the grapple — it stretches from his shoulder all the way to the
+anchor point when you swing, and whips out at whoever you punch.
 
 ## Rebuilding from source
 

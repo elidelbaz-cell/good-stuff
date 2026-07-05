@@ -1,25 +1,25 @@
 import * as THREE from 'three';
 
 /* ============================================================
-   TENTACLE TREETOPS — NEON SPRAWL
-   GTA-style open city on an alien world. You are Splort the
-   Slippery, the most wanted tentacle in the galaxy, cornered in
-   the neon city of Novoya Sprawl.
+   SPACE SWINGER
+   Third-person tentacle-swinging brawler in a neon alien city.
 
-   - Shift-lock mouse look (pointer lock; Shift or click to lock)
-   - WASD run, SPACE jump
-   - HOLD E: tentacle-swing between towers, Spider-Man style.
-     Release mid-arc to fly. No numbers. Just physics.
-   - LEFT CLICK: tentacle punch -> ZAPPER once you earn it
-   - Wanted stars, patrol saucers, alien pedestrians, hovercars
-   - Quest chain: disguise -> weapon -> scrap -> mechanic ->
-     fuel heist -> the last rocket off the planet.
+   - QUICK MATCH: matchmaking -> lobby -> 4-swinger DEATHMATCH
+     (kill feed, scoreboard, 3:00 timer). Opponents are AI
+     swingers standing in for live players — the flow is built
+     like an online game so netcode can slot in later.
+   - STORY: the wanted-fugitive quest chain in the same city.
+   - HOLD E: your right tentacle arm stretches to the anchor and
+     you swing on pendulum physics. Release mid-arc to fly.
+   - LEFT CLICK: punch combos — jab, hook, UPPERCUT (launches).
+   - Shift-lock mouse look (click / Shift), WASD run, SPACE jump.
    ============================================================ */
 
 const WALK_SPEED = 11;
-const PUNCH_RANGE = 22;
-const CITY_R = 270;         // city boundary
-const EYE = 1.6;            // eye height above whatever you stand on
+const CITY_R = 270;
+const EYE = 1.6;            // physics height of your center above your feet
+const MELEE_RANGE = 5.5;
+const MATCH_TIME = 180;
 
 // ---------------------------------------------------------- dom
 const $ = (id) => document.getElementById(id);
@@ -28,8 +28,11 @@ const ui = {
   questTitle: $('quest-title'), questObj: $('quest-obj'), questBar: $('questbar'),
   vignette: $('vignette'), flash: $('flash'), crosshair: $('crosshair'), fade: $('fade'),
   overlay: $('overlay'), oTitle: $('o-title'), oSub: $('o-sub'), oControls: $('o-controls'),
-  playBtn: $('playbtn'), hint: $('hint'), pops: $('pops'),
+  playBtn: $('playbtn'), storyBtn: $('storybtn'), hint: $('hint'), pops: $('pops'),
   cutscene: $('cutscene'), cutSpeaker: $('cut-speaker'), cutText: $('cut-text'), cutSkip: $('cut-skip'),
+  mm: $('mm'), mmList: $('mm-list'), lobby: $('lobby'), lobbyList: $('lobby-list'), lobbyCount: $('lobby-count'),
+  matchHud: $('match-hud'), matchTimer: $('match-timer'), matchScore: $('match-score'),
+  killfeed: $('killfeed'), combo: $('combo'), board: $('scoreboard'), boardRows: $('board-rows'),
 };
 
 // ---------------------------------------------------------- tiny synth sfx
@@ -67,11 +70,13 @@ const sfx = {
   release: () => tone(700, 0.15, 'sine', 0.08, 400),
   jump: () => tone(300, 0.15, 'triangle', 0.1, 500),
   land: () => tone(220, 0.1, 'triangle', 0.12, 160),
-  pow: () => { tone(90, 0.18, 'square', 0.25, 55); whoosh(0.15, 0.2); },
+  hit1: () => { tone(140, 0.12, 'square', 0.2, 90); whoosh(0.08, 0.12); },
+  hit2: () => { tone(120, 0.13, 'square', 0.22, 70); whoosh(0.09, 0.14); },
+  hit3: () => { tone(90, 0.2, 'square', 0.28, 45); whoosh(0.16, 0.22); },
   shot: (v) => tone(1500, 0.08, 'square', v, 500),
   pew: () => tone(1100, 0.12, 'sawtooth', 0.1, 300),
   hurt: () => tone(220, 0.2, 'sawtooth', 0.2, 110),
-  splat: () => { tone(200, 0.5, 'sawtooth', 0.25, 40); whoosh(0.3, 0.3); },
+  ko: () => { tone(200, 0.4, 'sawtooth', 0.22, 50); whoosh(0.3, 0.25); },
   step: () => tone(160 + Math.random() * 40, 0.04, 'triangle', 0.025),
   pickup: () => { tone(880, 0.1, 'square', 0.12); setTimeout(() => tone(1320, 0.15, 'square', 0.1), 80); },
   quest: () => { tone(523, 0.12, 'square', 0.12); setTimeout(() => tone(659, 0.12, 'square', 0.12), 110); setTimeout(() => tone(880, 0.25, 'square', 0.12), 220); },
@@ -79,6 +84,9 @@ const sfx = {
   win: () => { tone(523, 0.15, 'square', 0.13); setTimeout(() => tone(659, 0.15, 'square', 0.13), 130); setTimeout(() => tone(784, 0.3, 'square', 0.13), 260); setTimeout(() => tone(1047, 0.5, 'square', 0.13), 420); },
   siren: () => { tone(620, 0.28, 'square', 0.09, 880); setTimeout(() => tone(880, 0.28, 'square', 0.09, 620), 300); },
   whiff: () => whoosh(0.12, 0.08),
+  join: () => tone(660, 0.1, 'square', 0.1, 880),
+  count: () => tone(880, 0.12, 'square', 0.12),
+  go: () => tone(1320, 0.3, 'square', 0.14),
 };
 
 // ---------------------------------------------------------- three setup
@@ -92,7 +100,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(SKY);
 scene.fog = new THREE.Fog(SKY, 50, 300);
 
-const camera = new THREE.PerspectiveCamera(76, window.innerWidth / window.innerHeight, 0.1, 700);
+const camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.1, 700);
 camera.position.set(0, 30, 14);
 
 scene.add(new THREE.HemisphereLight(0x7a5fff, 0x162a3a, 1.15));
@@ -115,8 +123,7 @@ const MAT = {
   tower2: new THREE.MeshLambertMaterial({ color: 0x1c1638 }),
   tower3: new THREE.MeshLambertMaterial({ color: 0x2b2152 }),
   neonCyan: neonMat(0x2ae8d8), neonMagenta: neonMat(0xe83fd0), neonGreen: neonMat(0x5fe86a),
-  neonOrange: neonMat(0xff9a3f), neonYellow: neonMat(0xffe14d), neonBlue: neonMat(0x3f8cff),
-  road: new THREE.MeshLambertMaterial({ color: 0x131022 }),
+  neonOrange: neonMat(0xff9a3f), neonBlue: neonMat(0x3f8cff),
   lane: new THREE.MeshBasicMaterial({ color: 0x35f0d8, transparent: true, opacity: 0.35 }),
   tentacle: new THREE.MeshLambertMaterial({ color: 0x9a6ff0, emissive: 0x241040, emissiveIntensity: 1 }),
   sucker: new THREE.MeshLambertMaterial({ color: 0xd8c6ff, emissive: 0x4a2f80, emissiveIntensity: 0.6 }),
@@ -136,6 +143,12 @@ const MAT = {
   pedA: new THREE.MeshLambertMaterial({ color: 0x3a7a5f }),
   pedB: new THREE.MeshLambertMaterial({ color: 0x7a3a6f }),
   pedC: new THREE.MeshLambertMaterial({ color: 0x3a5f7a }),
+  botA: new THREE.MeshLambertMaterial({ color: 0xe0483a }),
+  botB: new THREE.MeshLambertMaterial({ color: 0x3a9ae0 }),
+  botC: new THREE.MeshLambertMaterial({ color: 0x46c46a }),
+  botTentA: new THREE.MeshLambertMaterial({ color: 0xf0836a, emissive: 0x401510, emissiveIntensity: 1 }),
+  botTentB: new THREE.MeshLambertMaterial({ color: 0x6ab8f0, emissive: 0x102540, emissiveIntensity: 1 }),
+  botTentC: new THREE.MeshLambertMaterial({ color: 0x7ae094, emissive: 0x104018, emissiveIntensity: 1 }),
   gun: new THREE.MeshLambertMaterial({ color: 0x1c1c28 }),
   bullet: new THREE.MeshBasicMaterial({ color: 0xff4fd8 }),
   bolt: new THREE.MeshBasicMaterial({ color: 0x4dffe1 }),
@@ -155,7 +168,6 @@ const MAT = {
   rocketFin: new THREE.MeshLambertMaterial({ color: 0xd04f4f }),
   lightRed: new THREE.MeshBasicMaterial({ color: 0xff3b3b }),
   lightBlue: new THREE.MeshBasicMaterial({ color: 0x3b8cff }),
-  shipLight: new THREE.MeshBasicMaterial({ color: 0xffe14d }),
   mask: new THREE.MeshLambertMaterial({ color: 0xf0e8d8 }),
   anchor: new THREE.MeshBasicMaterial({ color: 0x4dffe1, transparent: true, opacity: 0.9 }),
   carA: neonMat(0xe83fd0), carB: neonMat(0x2ae8d8), carC: neonMat(0xffe14d),
@@ -216,23 +228,25 @@ scene.add(skyGroup);
 // ---------------------------------------------------------- helpers / containers
 function randPick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3();
-const _camR = new THREE.Vector3(), _camU = new THREE.Vector3(), _camF = new THREE.Vector3();
 
 let worldGroup = new THREE.Group();
 scene.add(worldGroup);
 
-const buildings = [];  // { minX, maxX, minZ, maxZ, h }
-const enemies = [];    // hostile gunners
-const peds = [];       // alien pedestrians { group, target, speed, dead, ... }
-const cars = [];       // hover cars { mesh, axis, dir, lane, speed }
-const pursuers = [];   // patrol saucers
-const npcs = [];       // quest folk
+const buildings = [];
+const spawnRoofs = [];  // Vector3 rooftop respawn points
+const enemies = [];
+const peds = [];
+const cars = [];
+const pursuers = [];
+const npcs = [];
 const scraps = [];
 const projectiles = [];
 const playerShots = [];
+const bots = [];        // match opponents
 let objectiveBeam = null;
 let fuelCell = null;
 let rocket = null;
+let mode = 'none';      // 'story' | 'match'
 
 function makeBeam(pos, mat) {
   const m = new THREE.Mesh(GEO.beam, mat);
@@ -241,7 +255,7 @@ function makeBeam(pos, mat) {
   return m;
 }
 
-// ---------------------------------------------------------- city generation
+// ---------------------------------------------------------- city
 function groundAt(x, z) {
   let g = 0.2;
   for (const b of buildings) {
@@ -251,18 +265,15 @@ function groundAt(x, z) {
 }
 
 function addBuilding(cx, cz, w, d, h, accent) {
-  const geo = new THREE.BoxGeometry(w, h, d);
-  const m = new THREE.Mesh(geo, randPick([MAT.tower, MAT.tower2, MAT.tower3]));
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), randPick([MAT.tower, MAT.tower2, MAT.tower3]));
   m.position.set(cx, h / 2, cz);
   worldGroup.add(m);
-  // neon corner pillars + roof trim — the alien skyline
   const trim = accent || randPick([MAT.neonCyan, MAT.neonMagenta, MAT.neonGreen, MAT.neonBlue, MAT.neonOrange]);
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
     const p = new THREE.Mesh(new THREE.BoxGeometry(0.35, h, 0.35), trim);
     p.position.set(cx + sx * (w / 2), h / 2, cz + sz * (d / 2));
     worldGroup.add(p);
   }
-  // dark roof with neon edge strips (you can stand up here)
   const roof = new THREE.Mesh(new THREE.BoxGeometry(w, 0.3, d), MAT.tower2);
   roof.position.set(cx, h + 0.12, cz);
   worldGroup.add(roof);
@@ -276,17 +287,11 @@ function addBuilding(cx, cz, w, d, h, accent) {
     spire.position.set(cx, h + 3, cz);
     worldGroup.add(spire);
   }
-  if (Math.random() < 0.25) {
-    const domeM = new THREE.Mesh(new THREE.SphereGeometry(Math.min(w, d) * 0.3, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), MAT.dome);
-    domeM.position.set(cx, h + 0.3, cz);
-    worldGroup.add(domeM);
-  }
   buildings.push({ minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2, h });
+  if (h > 12 && h < 34) spawnRoofs.push(new THREE.Vector3(cx, h + EYE, cz));
 }
 
-const BLOCK = 46;       // street grid pitch
-const ROAD_W = 14;
-
+const BLOCK = 46;
 function blockIsReserved(cx, cz) {
   for (const key of Object.keys(L)) {
     const p = L[key];
@@ -296,7 +301,6 @@ function blockIsReserved(cx, cz) {
 }
 
 function buildCity() {
-  // roads: glowing lane lines on the ground plane
   for (let i = -6; i <= 6; i++) {
     const c = i * BLOCK;
     if (Math.abs(c) > CITY_R) continue;
@@ -309,8 +313,6 @@ function buildCity() {
     laneZ.position.set(0, 0.26, c);
     worldGroup.add(laneZ);
   }
-
-  // towers on each block (leaving roads + quest plazas clear)
   for (let gx = -5; gx <= 5; gx++) {
     for (let gz = -5; gz <= 5; gz++) {
       const cx = gx * BLOCK + BLOCK / 2;
@@ -319,18 +321,14 @@ function buildCity() {
       if (blockIsReserved(cx, cz)) continue;
       const n = Math.random() < 0.35 ? 2 : 1;
       if (n === 1) {
-        const w = 16 + Math.random() * 12, d = 16 + Math.random() * 12;
-        addBuilding(cx + (Math.random() - 0.5) * 6, cz + (Math.random() - 0.5) * 6, w, d, 14 + Math.random() * 42);
+        addBuilding(cx + (Math.random() - 0.5) * 6, cz + (Math.random() - 0.5) * 6, 16 + Math.random() * 12, 16 + Math.random() * 12, 14 + Math.random() * 42);
       } else {
         addBuilding(cx - 8, cz - 6, 12 + Math.random() * 4, 12 + Math.random() * 4, 12 + Math.random() * 30);
         addBuilding(cx + 8, cz + 7, 12 + Math.random() * 4, 12 + Math.random() * 4, 16 + Math.random() * 38);
       }
     }
   }
-
-  // pedestrians ambling the streets
   for (let i = 0; i < 42; i++) spawnPed();
-  // hover cars gliding the grid
   for (let i = 0; i < 14; i++) {
     const axis = Math.random() < 0.5 ? 'x' : 'z';
     const lane = (Math.floor(Math.random() * 11) - 5) * BLOCK + (Math.random() < 0.5 ? -3.5 : 3.5);
@@ -339,6 +337,77 @@ function buildCity() {
     mesh.position.y = 1.1;
     worldGroup.add(mesh);
     cars.push({ mesh, axis, lane, t: Math.random() * CITY_R * 2 - CITY_R, dir: Math.random() < 0.5 ? 1 : -1, speed: 16 + Math.random() * 10 });
+  }
+}
+
+// ---------------------------------------------------------- swinger rig (you, and the bots)
+// A swinger = capsule body + head/eyes + LEFT tentacle arm (short, animated)
+// + RIGHT tentacle arm whose tube IS the grapple: it stretches from the
+// right shoulder to the anchor when swinging, or to the punch target.
+function makeSwinger(bodyMat, tentMat) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 0.5, 6, 12), bodyMat);
+  body.position.y = 0.75;
+  g.add(body);
+  for (const sx of [-0.16, 0.16]) {
+    const ew = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 10), MAT.eyeW);
+    ew.position.set(sx, 0.98, 0.34);
+    g.add(ew);
+    const eb = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), MAT.eyeB);
+    eb.position.set(sx, 0.98, 0.43);
+    g.add(eb);
+  }
+  const armL = new THREE.Mesh(new THREE.BufferGeometry(), tentMat);
+  armL.frustumCulled = false;
+  const armR = new THREE.Mesh(new THREE.BufferGeometry(), tentMat);
+  armR.frustumCulled = false;
+  scene.add(armL); scene.add(armR);
+  const fist = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 10), MAT.sucker);
+  fist.visible = false;
+  scene.add(fist);
+  scene.add(g);
+  return { group: g, armL, armR, fist };
+}
+
+function setTube(mesh, points, radius, tubular = 10) {
+  mesh.geometry.dispose();
+  mesh.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), tubular, radius, 6, false);
+}
+
+// shoulder world positions for a swinger group
+function shoulder(group, side, out) {
+  out.set(side * 0.45, 0.85, 0.1);
+  out.applyQuaternion(group.quaternion);
+  out.add(group.position);
+  return out;
+}
+
+// animate a swinger's arms. reach = world point the RIGHT arm stretches to (or null)
+function poseArms(rig, t, phase, reach, vel) {
+  const g = rig.group;
+  const sL = shoulder(g, -1, _v1).clone();
+  const swayL = Math.sin(t * 4 + phase) * 0.15;
+  _v2.set(-0.5, -0.3 + swayL, 0.15).applyQuaternion(g.quaternion);
+  const l1 = sL.clone().add(_v2);
+  _v2.set(-0.65, -0.75 + swayL * 1.6, 0.1 - (vel ? Math.min(0.6, vel.length() * 0.02) : 0)).applyQuaternion(g.quaternion);
+  const l2 = sL.clone().add(_v2);
+  setTube(rig.armL, [sL, l1, l2], 0.09, 7);
+
+  const sR = shoulder(g, 1, _v1).clone();
+  if (reach) {
+    const mid = sR.clone().lerp(reach, 0.5);
+    mid.y += sR.distanceTo(reach) * 0.03;
+    setTube(rig.armR, [sR, mid, reach.clone()], 0.11, 12);
+    rig.fist.visible = true;
+    rig.fist.position.copy(reach);
+  } else {
+    const swayR = Math.cos(t * 4.5 + phase) * 0.15;
+    _v2.set(0.5, -0.3 + swayR, 0.15).applyQuaternion(g.quaternion);
+    const r1 = sR.clone().add(_v2);
+    _v2.set(0.65, -0.75 + swayR * 1.6, 0.1 - (vel ? Math.min(0.6, vel.length() * 0.02) : 0)).applyQuaternion(g.quaternion);
+    const r2 = sR.clone().add(_v2);
+    setTube(rig.armR, [sR, r1, r2], 0.09, 7);
+    rig.fist.visible = false;
   }
 }
 
@@ -356,7 +425,6 @@ function buildPerson(bodyMat, skin) {
     eye.position.set(sx, 0.94, 0.19);
     g.add(eye);
   }
-  // little antennae — everyone here is alien
   for (const sx of [-0.08, 0.08]) {
     const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.28, 4), skin || MAT.skinA);
     ant.position.set(sx, 1.2, 0);
@@ -367,10 +435,9 @@ function buildPerson(bodyMat, skin) {
 }
 
 function roadPoint() {
-  // a random point on the street grid
   const lane = (Math.floor(Math.random() * 11) - 5) * BLOCK;
   const t = Math.random() * CITY_R * 1.6 - CITY_R * 0.8;
-  const off = (Math.random() - 0.5) * (ROAD_W - 4);
+  const off = (Math.random() - 0.5) * 10;
   return Math.random() < 0.5
     ? new THREE.Vector3(lane + off, 0.2, t)
     : new THREE.Vector3(t, 0.2, lane + off);
@@ -379,8 +446,7 @@ function roadPoint() {
 function spawnPed() {
   const skin = randPick([MAT.skinA, MAT.skinB, MAT.skinC, MAT.skinD]);
   const g = buildPerson(randPick([MAT.pedA, MAT.pedB, MAT.pedC]), skin);
-  const p = roadPoint();
-  g.position.copy(p);
+  g.position.copy(roadPoint());
   worldGroup.add(g);
   peds.push({ group: g, target: roadPoint(), speed: 1.2 + Math.random() * 1.6, dead: false, removed: false, vel: new THREE.Vector3(), spin: 0, life: 3, panic: 0 });
 }
@@ -449,10 +515,10 @@ function makePatrolSaucer(pos) {
   });
 }
 
-// ---------------------------------------------------------- districts (quest locations)
+// ---------------------------------------------------------- districts
 const L = {
   spawn: new THREE.Vector3(8, 0, 190),
-  hideout: new THREE.Vector3(30, 0, 165),   // your rooftop — the cutscene
+  hideout: new THREE.Vector3(30, 0, 165),
   mask: new THREE.Vector3(-70, 0, 115),
   hunter: new THREE.Vector3(115, 0, 70),
   camp: new THREE.Vector3(160, 0, 120),
@@ -463,10 +529,8 @@ const L = {
 let hideoutRoof = 38;
 
 function buildDistricts() {
-  // your hideout tower (cutscene rooftop + spawn-adjacent)
   addBuilding(L.hideout.x, L.hideout.z, 20, 20, hideoutRoof, MAT.neonMagenta);
 
-  // mask maker: shop with a glowing mask sign
   addBuilding(L.mask.x - 14, L.mask.z, 14, 14, 12, MAT.neonMagenta);
   const sign = new THREE.Mesh(new THREE.CircleGeometry(2.2, 8), MAT.mask);
   sign.position.set(L.mask.x - 7, 8, L.mask.z);
@@ -475,12 +539,10 @@ function buildDistricts() {
   makeNPC(new THREE.Vector3(L.mask.x, 0.2, L.mask.z), MAT.npc1, 'THE MASK MAKER', talkMaskMaker, 'mask');
   makeBeam(L.mask, MAT.beamPurple);
 
-  // Zeb's pawn shop alley
   addBuilding(L.hunter.x + 14, L.hunter.z, 14, 18, 16, MAT.neonOrange);
   makeNPC(new THREE.Vector3(L.hunter.x, 0.2, L.hunter.z), MAT.npc2, 'OLD ZEB', talkHunter, 'hat');
   makeBeam(L.hunter, MAT.beamOrange);
 
-  // goon alley: crates + 4 goons
   for (const [tx, tz] of [[L.camp.x - 5, L.camp.z], [L.camp.x + 4, L.camp.z + 5], [L.camp.x, L.camp.z - 6]]) {
     const c = new THREE.Mesh(new THREE.BoxGeometry(2, 1.4, 2), MAT.hullDark);
     c.position.set(tx, 0.9, tz);
@@ -492,7 +554,6 @@ function buildDistricts() {
   }
   makeBeam(L.camp, MAT.beamRed);
 
-  // Rusty's scrapyard
   for (let k = 0; k < 7; k++) {
     const b = new THREE.Mesh(new THREE.BoxGeometry(1 + Math.random() * 1.6, 0.6 + Math.random(), 1 + Math.random()), MAT.hullDark);
     b.position.set(L.dealer.x + (Math.random() - 0.5) * 12, 0.7, L.dealer.z + (Math.random() - 0.5) * 12);
@@ -502,7 +563,6 @@ function buildDistricts() {
   makeNPC(new THREE.Vector3(L.dealer.x, 0.2, L.dealer.z), MAT.npc3, 'RUSTY', talkDealer, 'hat');
   makeBeam(L.dealer, MAT.beamYellow);
 
-  // launch pad plaza + the last rocket + Pia
   const padDisc = new THREE.Mesh(new THREE.CylinderGeometry(10, 11, 0.8, 10), MAT.hullDark);
   padDisc.position.set(L.rocket.x, 0.6, L.rocket.z);
   worldGroup.add(padDisc);
@@ -520,23 +580,15 @@ function buildDistricts() {
     fin.rotation.y = -a;
     rocket.add(fin);
   }
-  const win1 = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), MAT.dome);
-  win1.position.set(0, 6.5, 1.45);
-  rocket.add(win1);
   rocket.position.set(L.rocket.x, 1, L.rocket.z);
   rocket.rotation.z = 0.12;
   worldGroup.add(rocket);
   makeNPC(new THREE.Vector3(L.rocket.x + 7, 0.2, L.rocket.z + 3), MAT.npc4, 'PIA THE MECHANIC', talkMechanic, 'wrench');
   makeBeam(L.rocket, MAT.beamWhite);
 
-  // patrol depot: HQ slab + guards + saucers + fuel
   const slab = new THREE.Mesh(new THREE.CylinderGeometry(12, 13, 1, 10), MAT.hullDark);
   slab.position.set(L.depot.x, 0.7, L.depot.z);
   worldGroup.add(slab);
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(11.4, 0.2, 6, 30), MAT.lightRed);
-  rim.rotation.x = Math.PI / 2;
-  rim.position.set(L.depot.x, 1.4, L.depot.z);
-  worldGroup.add(rim);
   for (let k = 0; k < 5; k++) {
     const a = (k / 5) * Math.PI * 2;
     spawnGunner(new THREE.Vector3(L.depot.x + Math.cos(a) * 8, 1.2, L.depot.z + Math.sin(a) * 8), { guard: true });
@@ -552,23 +604,18 @@ function buildDistricts() {
   worldGroup.add(fuelCell);
   makeBeam(L.depot, MAT.beamRed);
 
-  // flavor aliens
-  makeNPC(new THREE.Vector3(-10, 0.2, 160), MAT.npc3, 'STREET VENDOR', () =>
-    openDialog([{ who: 'STREET VENDOR', text: 'Glow-noodles! Fresh glow-noo— hey, aren’t you that guy from the posters? ...Nah. He had a face.' }]), null);
-  makeNPC(new THREE.Vector3(60, 0.2, -40), MAT.npc2, 'BUSKER', () =>
-    openDialog([{ who: 'BUSKER', text: 'The depot? Red beam, south-east. They confiscated my theremin. Punch one of them for me.' }]), null);
-
   objectiveBeam = makeBeam(L.mask, MAT.beamGold);
+  objectiveBeam.visible = false;
 }
 
-// ---------------------------------------------------------- quest chain
+// ---------------------------------------------------------- quest chain (story mode)
 const CHAIN = [
   { t: 'BLEND IN', o: 'Find the Mask Maker (GOLD beam) and get a disguise', tgt: () => L.mask },
   { t: 'GET A WEAPON', o: 'Visit Old Zeb at the pawn shop', tgt: () => L.hunter },
   { t: 'ALLEY CLEANOUT', o: 'Punch the goons in the alley', n: 4, tgt: () => L.camp },
   { t: 'CLAIM YOUR ZAPPER', o: 'Return to Old Zeb', tgt: () => L.hunter },
   { t: 'ROCKET RUMORS', o: 'Ask Rusty at the scrapyard about the rocket', tgt: () => L.dealer },
-  { t: 'SCRAP RUN', o: 'Collect scrap for the repairs (two are on ROOFTOPS — swing up!)', n: 4, tgt: () => nearestScrap() },
+  { t: 'SCRAP RUN', o: 'Collect scrap (two are on ROOFTOPS — swing up!)', n: 4, tgt: () => nearestScrap() },
   { t: 'THE MECHANIC', o: 'Bring the scrap to Pia at the launch pad', tgt: () => L.rocket },
   { t: 'FUEL HEIST', o: 'Steal a fuel cell from the patrol depot', tgt: () => L.depot },
   { t: 'LAUNCH!', o: 'Swing back to the rocket — GO GO GO', tgt: () => L.rocket },
@@ -600,15 +647,12 @@ function advanceChain() {
 
 function spawnScraps() {
   const spots = [];
-  // two on rooftops near the scrapyard, two at street level
   const roofs = buildings
     .map((b) => ({ b, d: Math.hypot((b.minX + b.maxX) / 2 - L.dealer.x, (b.minZ + b.maxZ) / 2 - L.dealer.z) }))
     .filter((o) => o.d > 20 && o.d < 120)
     .sort((a, b) => a.d - b.d)
     .slice(0, 2);
-  for (const o of roofs) {
-    spots.push(new THREE.Vector3((o.b.minX + o.b.maxX) / 2, o.b.h + 1, (o.b.minZ + o.b.maxZ) / 2));
-  }
+  for (const o of roofs) spots.push(new THREE.Vector3((o.b.minX + o.b.maxX) / 2, o.b.h + 1, (o.b.minZ + o.b.maxZ) / 2));
   spots.push(new THREE.Vector3(L.dealer.x + 40, 1.2, L.dealer.z + 45));
   spots.push(new THREE.Vector3(L.dealer.x - 25, 1.2, L.dealer.z - 60));
   for (const p of spots) {
@@ -619,7 +663,6 @@ function spawnScraps() {
   }
 }
 
-// --- NPC dialogue
 function talkMaskMaker() {
   if (chainIdx === 0) {
     openDialog([
@@ -636,7 +679,6 @@ function talkMaskMaker() {
     openDialog([{ who: 'THE MASK MAKER', text: 'Nice face, stranger. Wink.' }]);
   }
 }
-
 function talkHunter() {
   if (chainIdx === 1) {
     openDialog([
@@ -658,7 +700,6 @@ function talkHunter() {
     openDialog([{ who: 'OLD ZEB', text: 'A rocket, eh? Rusty at the scrapyard knows every bolt in this city.' }]);
   }
 }
-
 function talkDealer() {
   if (chainIdx === 4) {
     openDialog([
@@ -666,18 +707,17 @@ function talkDealer() {
       { who: 'RUSTY', text: 'Bring me 4 pieces of good scrap and I’ll send the parts to Pia. Check the CYAN glows — two are up on the towers.' },
     ], () => advanceChain());
   } else if (chainIdx === 5) {
-    openDialog([{ who: 'RUSTY', text: `Scrap count: ${questN}/4. The rooftop ones are the good stuff. You DO know how to swing, right?` }]);
+    openDialog([{ who: 'RUSTY', text: `Scrap count: ${questN}/4. The rooftop ones are the good stuff.` }]);
   } else {
     openDialog([{ who: 'RUSTY', text: 'No refunds.' }]);
   }
 }
-
 function talkMechanic() {
   if (chainIdx === 6) {
     openDialog([
       { who: 'PIA', text: 'Rusty’s scrap came through. Give me a second—' },
-      { who: 'PIA', text: '*clang* *clang* ...Done. Straightened her right up. One problem: the tank is DRY.' },
-      { who: 'PIA', text: 'The patrol depot keeps fuel cells. Steal one. This is the part of your day that gets LOUD.' },
+      { who: 'PIA', text: '*clang* *clang* ...Done. One problem: the tank is DRY.' },
+      { who: 'PIA', text: 'The patrol depot keeps fuel cells. Steal one. This is where your day gets LOUD.' },
     ], () => {
       rocket.rotation.z = 0;
       advanceChain();
@@ -691,7 +731,7 @@ function talkMechanic() {
   }
 }
 
-// ---------------------------------------------------------- dialogue box
+// ---------------------------------------------------------- dialogue
 let dlg = null;
 let talkCd = 0;
 function openDialog(lines, onDone) {
@@ -752,56 +792,26 @@ function updateParticles(dt) {
   }
 }
 
-// ---------------------------------------------------------- tentacles (first person)
-function makeTube() {
-  const m = new THREE.Mesh(new THREE.BufferGeometry(), MAT.tentacle);
-  m.frustumCulled = false;
-  scene.add(m);
-  return m;
-}
-const idleTubes = [makeTube(), makeTube()];
-const swingTube = makeTube();
-swingTube.visible = false;
-const swingFist = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 10), MAT.sucker);
-swingFist.visible = false;
-scene.add(swingFist);
-const punchTube = makeTube();
-punchTube.visible = false;
-const punchFist = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 10), MAT.sucker);
-punchFist.visible = false;
-scene.add(punchFist);
-
-function setTube(mesh, points, radius, tubular = 10) {
-  mesh.geometry.dispose();
-  mesh.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), tubular, radius, 6, false);
-}
-
-// swing anchor preview marker
-const anchorMarker = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 10), MAT.anchor);
-anchorMarker.visible = false;
-scene.add(anchorMarker);
-
-// ---------------------------------------------------------- game state
+// ---------------------------------------------------------- player state
 const P = {
-  state: 'menu', // menu | cutscene | walk | air | swing | won
+  state: 'menu', // menu | cutscene | walk | air | swing | won | dead(respawning)
   pos: new THREE.Vector3(), vel: new THREE.Vector3(),
-  hp: 100, score: 0, punches: 0,
-  heat: 0, punchAnim: null, gunCd: 0,
-  startTime: 0,
-  groundY: 0.2, // top surface under our feet
+  hp: 100, score: 0, punches: 0, kos: 0, deaths: 0,
+  heat: 0, gunCd: 0, startTime: 0, groundY: 0.2,
+  comboStep: 0, comboT: 0, comboCount: 0, attackAnim: null, respawnAt: 0,
 };
-let swing = null; // { anchor: Vector3, len: number }
+const playerRig = makeSwinger(MAT.body, MAT.tentacle);
+playerRig.group.visible = false;
+let swing = null;
 let best = 0;
-try { best = parseInt(localStorage.getItem('ttp_best') || '0', 10) || 0; } catch (e) {}
+try { best = parseInt(localStorage.getItem('ssw_best') || '0', 10) || 0; } catch (e) {}
 ui.best.textContent = best;
 
 let shake = 0;
-let fov = 76, fovTarget = 76;
-let roll = 0;
+let fov = 74, fovTarget = 74;
 let camFwd = new THREE.Vector3(0, 0, -1);
-let yaw = 0, pitch = 0;
+let yaw = 0, pitch = -0.15;
 let elapsed = 0;
-let trailT = 0;
 let stepT = 0;
 let escapeTimer = 0;
 let lastSiren = -10;
@@ -812,40 +822,43 @@ let pointerLocked = false;
 const mouse = { x: 0, y: 0 };
 const keys = {};
 
-// ---------------------------------------------------------- shift lock (pointer lock)
+// match state
+let matchTime = 0;
+let matchOver = false;
+const BOT_NAMES = ['Zorblax_99', 'xX_Tenta_Xx', 'SlurpMaster', 'GleepGlorp', 'NoodleArms', 'Sir_Squidly', 'WetBandit', 'Calamari_Carl'];
+
+// ---------------------------------------------------------- shift lock
 function requestLock() {
   const el = renderer.domElement;
-  if (el.requestPointerLock) {
-    try { el.requestPointerLock(); } catch (e) {}
-  }
+  if (el.requestPointerLock) { try { el.requestPointerLock(); } catch (e) {} }
 }
 document.addEventListener('pointerlockchange', () => {
   pointerLocked = document.pointerLockElement === renderer.domElement;
   ui.crosshair.classList.toggle('locked', pointerLocked);
 });
 document.addEventListener('pointerlockerror', () => { pointerLocked = false; });
-
 window.addEventListener('mousemove', (ev) => {
   if (pointerLocked) {
     yaw += ev.movementX * 0.0026;
-    pitch = THREE.MathUtils.clamp(pitch - ev.movementY * 0.0023, -1.25, 1.25);
+    pitch = THREE.MathUtils.clamp(pitch - ev.movementY * 0.0023, -1.1, 0.9);
   } else {
     mouse.x = (ev.clientX / window.innerWidth) * 2 - 1;
     mouse.y = (ev.clientY / window.innerHeight) * 2 - 1;
   }
 });
 
-// ---------------------------------------------------------- swing mechanics (Spider-Splort)
+// ---------------------------------------------------------- swing mechanics
+const anchorMarker = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 10), MAT.anchor);
+anchorMarker.visible = false;
+scene.add(anchorMarker);
+
 function findAnchor() {
-  // best rooftop point roughly where you're looking, above you
   let bestP = null, bestScore = 0.3;
   const eye = P.pos;
   for (const b of buildings) {
     const px = THREE.MathUtils.clamp(eye.x, b.minX, b.maxX);
     const pz = THREE.MathUtils.clamp(eye.z, b.minZ, b.maxZ);
     const py = b.h + 0.3;
-    // lower rooftops are fine — you dive off and the rope catches you —
-    // but not so low the swing just faceplants you
     if (py < eye.y - 18) continue;
     _v1.set(px - eye.x, py - eye.y, pz - eye.z);
     const d = _v1.length();
@@ -867,10 +880,8 @@ function startSwing() {
   if (!a) { sfx.whiff(); return false; }
   const d = a.distanceTo(P.pos);
   swing = { anchor: a, len: Math.max(7, Math.min(d * 0.97, 55)) };
-  if (P.state === 'walk') P.vel.y = Math.max(P.vel.y, 3); // hop off the ground into the arc
+  if (P.state === 'walk') P.vel.y = Math.max(P.vel.y, 3);
   P.state = 'swing';
-  swingTube.visible = true;
-  swingFist.visible = true;
   sfx.attach();
   return true;
 }
@@ -878,24 +889,18 @@ function startSwing() {
 function endSwing(silent) {
   if (P.state === 'swing') P.state = 'air';
   swing = null;
-  swingTube.visible = false;
-  swingFist.visible = false;
   if (!silent) sfx.release();
 }
 
 function applySwingPhysics(dt) {
-  // gravity
   P.vel.y -= 28 * dt;
-  // pump: W accelerates along your view, A/D nudge sideways
   _v1.set(camFwd.x, 0, camFwd.z).normalize();
   if (keys['KeyW'] || keys['ArrowUp']) P.vel.addScaledVector(_v1, 14 * dt);
   if (keys['KeyS'] || keys['ArrowDown']) P.vel.addScaledVector(_v1, -8 * dt);
   _v2.crossVectors(_v1, _v3.set(0, 1, 0));
   if (keys['KeyA'] || keys['ArrowLeft']) P.vel.addScaledVector(_v2, 9 * dt);
   if (keys['KeyD'] || keys['ArrowRight']) P.vel.addScaledVector(_v2, -9 * dt);
-  // integrate
   P.pos.addScaledVector(P.vel, dt);
-  // rope constraint
   _v1.copy(P.pos).sub(swing.anchor);
   const d = _v1.length();
   if (d > swing.len) {
@@ -904,18 +909,14 @@ function applySwingPhysics(dt) {
     const radial = P.vel.dot(_v1);
     if (radial > 0) P.vel.addScaledVector(_v1, -radial);
   }
-  // slight air drag
   P.vel.multiplyScalar(1 - 0.06 * dt);
 }
 
-// building collision: push out of walls, land on roofs / streets
-function collide(dt, prevY) {
-  // walls
+function collide() {
   for (const b of buildings) {
     if (P.pos.x > b.minX - 0.5 && P.pos.x < b.maxX + 0.5 &&
         P.pos.z > b.minZ - 0.5 && P.pos.z < b.maxZ + 0.5 &&
         P.pos.y - EYE < b.h - 0.4) {
-      // inside the volume — push out along the smallest penetration
       const dxl = P.pos.x - (b.minX - 0.5), dxr = (b.maxX + 0.5) - P.pos.x;
       const dzl = P.pos.z - (b.minZ - 0.5), dzr = (b.maxZ + 0.5) - P.pos.z;
       const m = Math.min(dxl, dxr, dzl, dzr);
@@ -925,7 +926,6 @@ function collide(dt, prevY) {
       else { P.pos.z = b.maxZ + 0.5; if (P.vel.z < 0) P.vel.z = 0; }
     }
   }
-  // floor / roof landing
   const g = groundAt(P.pos.x, P.pos.z);
   if (P.pos.y - EYE <= g + 0.05 && P.vel.y <= 0.01) {
     const impact = -P.vel.y;
@@ -933,9 +933,8 @@ function collide(dt, prevY) {
     P.groundY = g;
     if (P.state === 'swing') endSwing(true);
     if (P.state !== 'walk') {
-      if (impact > 34) { hurt(Math.min(35, (impact - 30) * 2)); popTextScreen('OOF.'); }
+      if (impact > 34) { hurt(Math.min(35, (impact - 30) * 2), null); popTextScreen('OOF.'); }
       sfx.land();
-      roll = 0;
     }
     P.vel.set(0, 0, 0);
     P.state = 'walk';
@@ -944,56 +943,99 @@ function collide(dt, prevY) {
   return false;
 }
 
-// ---------------------------------------------------------- punch & zapper
+// ---------------------------------------------------------- combat: combos
 function allTargets() {
   const list = [];
+  if (mode === 'match') {
+    for (const b of bots) if (!b.dead) list.push({ kind: 'bot', e: b, pos: b.group.position });
+  }
   for (const e of enemies) if (!e.dead && !e.removed) list.push({ kind: 'enemy', e, pos: e.group.position });
   for (const p of peds) if (!p.dead && !p.removed) list.push({ kind: 'ped', e: p, pos: p.group.position });
   return list;
 }
 
-function pickPunchTarget() {
-  let bestT = null, bd = PUNCH_RANGE;
+function nearestTarget(range) {
+  let bestT = null, bs = Infinity;
   for (const t of allTargets()) {
     const d = t.pos.distanceTo(P.pos);
-    if (d > bd) continue;
-    bd = d; bestT = t;
+    if (d > range) continue;
+    const s = d - (t.kind === 'bot' ? 2.5 : 0); // in a match, the other swingers matter most
+    if (s < bs) { bs = s; bestT = t; }
   }
   return bestT;
 }
 
-function tryPunch() {
-  if (P.punchAnim) return;
+function attack() {
+  if (P.attackAnim) return;
   if (P.state !== 'walk' && P.state !== 'air' && P.state !== 'swing') return;
-  const target = pickPunchTarget();
-  const aim = target ? null : P.pos.clone().addScaledVector(camFwd, 8);
-  P.punchAnim = { target, aim, t: 0, phase: 'out', end: new THREE.Vector3() };
-  punchTube.visible = true;
-  punchFist.visible = true;
-  whoosh(0.15, 0.12);
+  // combo timing: chain within 0.9s
+  if (elapsed - P.comboT < 0.9) P.comboStep = (P.comboStep % 3) + 1;
+  else P.comboStep = 1;
+  P.comboT = elapsed;
+  const target = nearestTarget(MELEE_RANGE);
+  const reach = target ? target.pos.clone().add(_v3.set(0, 0.8, 0)) : P.pos.clone().addScaledVector(camFwd, 3);
+  P.attackAnim = { target, reach, t: 0, step: P.comboStep };
+  // lunge toward the target
+  if (target) {
+    _v1.copy(target.pos).sub(P.pos).setY(0).normalize();
+    P.vel.addScaledVector(_v1, 4);
+  }
+  whoosh(0.1, 0.1);
 }
 
-function knockPerson(t, label) {
+function updateAttack(dt) {
+  const a = P.attackAnim;
+  if (!a) return;
+  a.t += dt / 0.22;
+  if (a.t >= 0.5 && !a.hitDone) {
+    a.hitDone = true;
+    if (a.target && !a.target.e.dead) {
+      const dmg = [10, 12, 20][a.step - 1];
+      hitEntity(a.target, dmg, a.step === 3);
+      P.comboCount += 1;
+      ui.combo.textContent = 'COMBO x' + P.comboCount;
+      ui.combo.classList.remove('hidden');
+      ui.combo.classList.remove('pop2');
+      void ui.combo.offsetWidth;
+      ui.combo.classList.add('pop2');
+      [sfx.hit1, sfx.hit2, sfx.hit3][a.step - 1]();
+      shake = Math.min(1, shake + 0.2 + a.step * 0.1);
+    } else {
+      P.comboCount = 0;
+      ui.combo.classList.add('hidden');
+      sfx.whiff();
+    }
+  }
+  if (a.t >= 1) P.attackAnim = null;
+}
+
+function hitEntity(t, dmg, launcher) {
   const e = t.e;
+  burst(t.pos, MAT.bullet, 6, 8, 6);
+  if (t.kind === 'bot') {
+    e.hp -= dmg;
+    e.staggerT = 0.35;
+    _v1.copy(e.group.position).sub(P.pos).setY(0).normalize();
+    e.knock.set(_v1.x * (launcher ? 14 : 6), launcher ? 11 : 3, _v1.z * (launcher ? 14 : 6));
+    if (e.hp <= 0) botKO(e, 'You');
+    return;
+  }
+  // peds and story gunners are one-combo folk
   e.dead = true;
   _v1.copy(t.pos).sub(P.pos).normalize();
-  e.vel.set(_v1.x * 17 + (Math.random() - 0.5) * 4, 13, _v1.z * 17 + (Math.random() - 0.5) * 4);
+  e.vel.set(_v1.x * (launcher ? 19 : 12), launcher ? 14 : 9, _v1.z * (launcher ? 19 : 12));
   e.spin = 8 + Math.random() * 8;
   e.life = 2.5;
   P.punches += 1;
-  shake = Math.min(1, shake + 0.5);
-  burst(t.pos, MAT.bullet, 8, 10, 8);
-  sfx.pow();
   if (t.kind === 'ped') {
-    P.score = Math.max(0, P.score - 5);
-    P.heat = Math.min(100, P.heat + 30); // assaulting civilians. Classy.
-    popText(t.pos, 'ASSAULT! 🚨', 'pow');
+    if (mode === 'story') { P.heat = Math.min(100, P.heat + 30); popText(t.pos, 'ASSAULT! 🚨', 'pow'); }
+    else popText(t.pos, 'BYSTANDER!', 'pow');
   } else {
     P.score += 25;
     P.hp = Math.min(100, P.hp + 10);
     if (e.guard) P.heat = Math.min(100, P.heat + 26);
-    popText(t.pos, label, 'pow');
-    if (chainIdx === 2 && e.goon) {
+    popText(t.pos, launcher ? 'LAUNCHED!' : 'POW!', 'pow');
+    if (mode === 'story' && chainIdx === 2 && e.goon) {
       questN += 1;
       popTextScreen(`GOONS TIPPED: ${questN}/4`);
       if (questN >= 4) { advanceChain(); popTextScreen('Return to OLD ZEB for your zapper'); }
@@ -1001,37 +1043,7 @@ function knockPerson(t, label) {
   }
 }
 
-function updatePunch(dt) {
-  const pa = P.punchAnim;
-  if (!pa) return;
-  const base = camPoint(-0.45, -0.42, 0.7);
-  if (pa.phase === 'out') {
-    pa.t += dt / 0.13;
-    const target = pa.target && !pa.target.e.removed ? pa.target.pos : pa.aim;
-    const k = Math.min(1, pa.t);
-    pa.end.copy(base).lerp(target, k * k);
-    if (pa.t >= 1) {
-      if (pa.target && !pa.target.e.dead && !pa.target.e.removed) knockPerson(pa.target, 'POW!');
-      pa.phase = 'back';
-      pa.t = 0;
-    }
-  } else {
-    pa.t += dt / 0.18;
-    const k = Math.min(1, pa.t);
-    pa.end.lerp(base, k);
-    if (pa.t >= 1) {
-      P.punchAnim = null;
-      punchTube.visible = false;
-      punchFist.visible = false;
-      return;
-    }
-  }
-  const mid = base.clone().lerp(pa.end, 0.5);
-  mid.y += 0.4;
-  setTube(punchTube, [base, mid, pa.end.clone()], 0.17, 10);
-  punchFist.position.copy(pa.end);
-}
-
+// ---------------------------------------------------------- zapper (story)
 function fireZapper() {
   if (!hasGun || P.gunCd > 0) return;
   P.gunCd = 0.28;
@@ -1053,11 +1065,10 @@ function fireZapper() {
     if (_v1.dot(camFwd) > bs) { bs = _v1.dot(camFwd); aimDir = _v1.clone(); }
   }
   const m = new THREE.Mesh(GEO.bolt, MAT.bolt);
-  m.position.copy(camPoint(0.35, -0.3, 0.8));
+  m.position.copy(P.pos).addScaledVector(camFwd, 1).add(_v3.set(0, 0.3, 0));
   scene.add(m);
   playerShots.push({ mesh: m, vel: aimDir.multiplyScalar(80), life: 1.4 });
   sfx.pew();
-  shake = Math.min(1, shake + 0.1);
 }
 
 function updatePlayerShots(dt) {
@@ -1069,7 +1080,8 @@ function updatePlayerShots(dt) {
     let hit = false;
     for (const t of allTargets()) {
       if (t.pos.distanceTo(s.mesh.position) < 1.6) {
-        knockPerson(t, 'ZAP!');
+        hitEntity(t, 34, false);
+        sfx.hit2();
         hit = true;
         break;
       }
@@ -1080,7 +1092,7 @@ function updatePlayerShots(dt) {
         if (u.group.position.distanceTo(s.mesh.position) < 2.6) {
           u.hp -= 1;
           burst(s.mesh.position, MAT.bolt, 5, 6, 5);
-          sfx.pow();
+          sfx.hit1();
           if (u.hp <= 0) {
             u.crashed = true;
             u.respawnAt = elapsed + 16;
@@ -1100,7 +1112,153 @@ function updatePlayerShots(dt) {
   }
 }
 
-// ---------------------------------------------------------- popups
+// ---------------------------------------------------------- MATCH MODE: the other swingers
+function spawnBot(i) {
+  const mats = [[MAT.botA, MAT.botTentA], [MAT.botB, MAT.botTentB], [MAT.botC, MAT.botTentC]];
+  const rig = makeSwinger(mats[i % 3][0], mats[i % 3][1]);
+  const start = randPick(spawnRoofs) || new THREE.Vector3(0, EYE, 0);
+  rig.group.position.set(start.x, start.y - EYE, start.z);
+  const bot = {
+    rig, group: rig.group, name: BOT_NAMES.splice(Math.floor(Math.random() * BOT_NAMES.length), 1)[0],
+    hp: 100, kos: 0, deaths: 0, dead: false,
+    state: 'idle', hopFrom: new THREE.Vector3(), hopTo: new THREE.Vector3(), hopT: 0, hopDur: 1,
+    target: null, decideT: 0, atkT: 0, comboStep: 0,
+    knock: new THREE.Vector3(), staggerT: 0, ragT: 0, respawnAt: 0,
+    phase: Math.random() * 6, reach: null,
+  };
+  bots.push(bot);
+  return bot;
+}
+
+function botKO(bot, killerName) {
+  bot.dead = true;
+  bot.deaths += 1;
+  bot.ragT = 1.2;
+  bot.respawnAt = elapsed + 3;
+  bot.knock.y = Math.max(bot.knock.y, 9);
+  sfx.ko();
+  if (killerName === 'You') { P.kos += 1; P.score += 100; }
+  else {
+    const killer = bots.find((b) => b.name === killerName);
+    if (killer) killer.kos += 1;
+  }
+  killfeed(`${killerName} KO'd ${bot.name}`);
+}
+
+function killfeed(text) {
+  const el = document.createElement('div');
+  el.className = 'kf';
+  el.textContent = text;
+  ui.killfeed.prepend(el);
+  setTimeout(() => el.remove(), 4200);
+  while (ui.killfeed.children.length > 5) ui.killfeed.lastChild.remove();
+}
+
+function botPickTarget(bot) {
+  const cands = [];
+  if (P.state === 'walk' || P.state === 'air' || P.state === 'swing') cands.push({ name: 'You', pos: P.pos, isPlayer: true });
+  for (const b of bots) if (b !== bot && !b.dead) cands.push({ name: b.name, pos: b.group.position, bot: b });
+  if (!cands.length) return null;
+  cands.sort((a, b) => a.pos.distanceTo(bot.group.position) - b.pos.distanceTo(bot.group.position));
+  return Math.random() < 0.75 ? cands[0] : randPick(cands);
+}
+
+function updateBots(dt) {
+  for (const bot of bots) {
+    const g = bot.group;
+    if (bot.dead) {
+      // ragdoll
+      bot.knock.y -= 26 * dt;
+      g.position.addScaledVector(bot.knock, dt);
+      g.rotation.x += 5 * dt;
+      if (g.position.y < 0.2) g.position.y = 0.2;
+      if (elapsed > bot.respawnAt && !matchOver) {
+        bot.dead = false;
+        bot.hp = 100;
+        g.rotation.set(0, 0, 0);
+        const s = randPick(spawnRoofs);
+        g.position.set(s.x, s.y - EYE, s.z);
+        bot.state = 'idle';
+      }
+      poseArms(bot.rig, elapsed, bot.phase, null, bot.knock);
+      continue;
+    }
+    if (bot.staggerT > 0) {
+      bot.staggerT -= dt;
+      bot.knock.y -= 20 * dt;
+      g.position.addScaledVector(bot.knock, dt);
+      const gy = groundAt(g.position.x, g.position.z);
+      if (g.position.y < gy + 0.2) { g.position.y = gy + 0.2; bot.knock.set(0, 0, 0); }
+      poseArms(bot.rig, elapsed, bot.phase, null, bot.knock);
+      continue;
+    }
+    bot.decideT -= dt;
+    if (bot.decideT <= 0 || !bot.target) {
+      bot.decideT = 2 + Math.random() * 2;
+      bot.target = botPickTarget(bot);
+    }
+    const tp = bot.target ? bot.target.pos : null;
+    if (bot.state === 'hop') {
+      bot.hopT += dt / bot.hopDur;
+      const k = Math.min(1, bot.hopT);
+      g.position.lerpVectors(bot.hopFrom, bot.hopTo, k);
+      g.position.y += Math.sin(k * Math.PI) * bot.hopArc;
+      // swing-arm reach to a sky anchor mid-hop — looks like swinging
+      bot.reach = bot.hopAnchor;
+      if (k >= 1) { bot.state = 'idle'; bot.reach = null; }
+    } else if (tp) {
+      const d = g.position.distanceTo(tp);
+      if (d > 5) {
+        // start a swing-hop toward the target
+        bot.state = 'hop';
+        bot.hopFrom.copy(g.position);
+        const over = Math.min(d, 26 + Math.random() * 14);
+        _v1.copy(tp).sub(g.position).setY(0).normalize();
+        bot.hopTo.copy(g.position).addScaledVector(_v1, over);
+        bot.hopTo.y = groundAt(bot.hopTo.x, bot.hopTo.z) + 0.2;
+        bot.hopDur = 0.55 + over / 40;
+        bot.hopArc = 3 + over * 0.22;
+        bot.hopT = 0;
+        bot.hopAnchor = g.position.clone().addScaledVector(_v1, over * 0.5).add(_v3.set(0, 18 + Math.random() * 8, 0));
+      } else {
+        // brawl
+        g.rotation.y = Math.atan2(tp.x - g.position.x, tp.z - g.position.z);
+        bot.atkT -= dt;
+        if (bot.atkT <= 0) {
+          bot.atkT = 0.75 + Math.random() * 0.5;
+          bot.comboStep = (bot.comboStep % 3) + 1;
+          bot.reach = tp.clone().add(_v3.set(0, 0.8, 0));
+          setTimeout(() => { if (bot.reach) bot.reach = null; }, 220);
+          const launcher = bot.comboStep === 3;
+          if (bot.target.isPlayer) {
+            if (P.pos.distanceTo(g.position) < 5.5) {
+              hurt(launcher ? 16 : 9, bot.name);
+              if (launcher) { _v1.copy(P.pos).sub(g.position).setY(0).normalize(); P.vel.addScaledVector(_v1, 12); P.vel.y += 8; if (P.state === 'walk') P.state = 'air'; }
+              [sfx.hit1, sfx.hit2, sfx.hit3][bot.comboStep - 1]();
+            }
+          } else if (bot.target.bot && !bot.target.bot.dead) {
+            const tb = bot.target.bot;
+            if (tb.group.position.distanceTo(g.position) < 5.5) {
+              tb.hp -= launcher ? 16 : 9;
+              tb.staggerT = 0.3;
+              _v1.copy(tb.group.position).sub(g.position).setY(0).normalize();
+              tb.knock.set(_v1.x * (launcher ? 12 : 5), launcher ? 9 : 2, _v1.z * (launcher ? 12 : 5));
+              if (tb.hp <= 0) botKO(tb, bot.name);
+            }
+          }
+        }
+      }
+    }
+    // face travel direction while hopping
+    if (bot.state === 'hop') {
+      _v1.copy(bot.hopTo).sub(bot.hopFrom);
+      if (_v1.lengthSq() > 0.1) g.rotation.y = Math.atan2(_v1.x, _v1.z);
+    }
+    poseArms(bot.rig, elapsed, bot.phase, bot.reach || null, null);
+  }
+}
+
+// ---------------------------------------------------------- popups & damage
 function popText(worldPos, text, cls) {
   _v1.copy(worldPos).project(camera);
   if (_v1.z > 1) return;
@@ -1120,9 +1278,8 @@ function spawnPop(left, top, text, cls) {
   setTimeout(() => el.remove(), cls === 'sys' ? 2600 : 900);
 }
 
-// ---------------------------------------------------------- damage / respawn / win
-function hurt(dmg) {
-  if (P.state === 'menu' || P.state === 'won' || P.state === 'cutscene') return;
+function hurt(dmg, attacker) {
+  if (P.state === 'menu' || P.state === 'won' || P.state === 'cutscene' || P.state === 'dead') return;
   P.hp -= dmg;
   sfx.hurt();
   shake = Math.min(1, shake + 0.35);
@@ -1131,20 +1288,41 @@ function hurt(dmg) {
   ui.flash.classList.add('on');
   if (P.hp <= 0) {
     P.hp = 0;
-    respawn('KNOCKED OUT! You wake up back at the plaza. -50', 50);
+    if (mode === 'match') {
+      P.deaths += 1;
+      const killer = attacker || 'The pavement';
+      killfeed(`${killer} KO'd You`);
+      const kb = bots.find((b) => b.name === attacker);
+      if (kb) kb.kos += 1;
+      sfx.ko();
+      endSwing(true);
+      P.state = 'dead';
+      P.respawnAt = elapsed + 2.5;
+      ui.vignette.classList.add('on');
+    } else {
+      respawnStory('KNOCKED OUT! You wake up back at the plaza. -50', 50);
+    }
   }
 }
 
-function respawn(msg, penalty) {
+function respawnMatch() {
+  const s = randPick(spawnRoofs);
+  P.pos.set(s.x, s.y, s.z);
+  P.vel.set(0, 0, 0);
+  P.hp = 100;
+  P.groundY = s.y - EYE;
+  P.state = 'walk';
+  ui.vignette.classList.remove('on');
+}
+
+function respawnStory(msg, penalty) {
   P.score = Math.max(0, P.score - penalty);
   P.hp = 100;
   endSwing(true);
   P.state = 'walk';
   P.pos.set(L.spawn.x, 0.2 + EYE, L.spawn.z);
   P.vel.set(0, 0, 0);
-  P.punchAnim = null;
-  punchTube.visible = false; punchFist.visible = false;
-  roll = 0; fovTarget = 76;
+  P.groundY = 0.2;
   P.heat = alarm ? 100 : (disguised ? 0 : 40);
   for (const u of pursuers) if (!u.crashed) u.group.position.copy(u.home);
   escapeTimer = 0;
@@ -1154,33 +1332,14 @@ function respawn(msg, penalty) {
 
 function busted() {
   sfx.siren();
-  respawn('BUSTED! They fined you and dumped you at the plaza. -100', 100);
+  respawnStory('BUSTED! They fined you and dumped you at the plaza. -100', 100);
 }
 
-function win() {
-  P.state = 'won';
-  P.score += 500;
-  endSwing(true);
-  ui.crosshair.classList.add('hidden');
-  if (document.exitPointerLock) document.exitPointerLock();
-  if (P.score > best) {
-    best = P.score;
-    try { localStorage.setItem('ttp_best', String(best)); } catch (e) {}
-  }
-  ui.best.textContent = best;
-  sfx.win();
-  const mins = ((performance.now() - P.startTime) / 60000);
-  ui.oTitle.textContent = '🚀 BLAST OFF!';
-  ui.oSub.innerHTML = `The old mail rocket coughs, shudders — and LEAVES. Splort the Slippery escapes again.<br><b>${P.score}</b> score (best ${best}) &nbsp;·&nbsp; <b>${P.punches}</b> KOs &nbsp;·&nbsp; ${mins.toFixed(1)} min`;
-  ui.oControls.classList.add('hidden');
-  ui.playBtn.textContent = 'PLAY AGAIN';
-  ui.overlay.classList.remove('hidden');
-}
-
-// ---------------------------------------------------------- wanted system
+// ---------------------------------------------------------- wanted (story)
 function wantedStars() { return P.heat <= 0 ? 0 : Math.min(3, 1 + Math.floor(P.heat / 34)); }
 
 function updateWanted(dt) {
+  if (mode !== 'story') { for (const u of pursuers) u.active = false; return; }
   const stars = wantedStars();
   let active = 0;
   for (const u of pursuers) {
@@ -1231,10 +1390,9 @@ function updatePursuers(dt) {
       if (d > 5) u.group.position.addScaledVector(_v1.normalize(), Math.min(14 * dt, d - 4.5));
       u.group.position.y = Math.max(u.group.position.y, groundAt(u.group.position.x, u.group.position.z) + 4);
       u.group.rotation.y = Math.atan2(_v1.x, _v1.z);
-      u.group.rotation.z = Math.sin(elapsed * 3 + u.phase) * 0.08;
       if (d < 6) { busted(); return; }
       u.cd -= dt;
-      if (u.cd <= 0 && d < 75 && hunting) {
+      if (u.cd <= 0 && d < 75) {
         u.cd = 2.2 + Math.random() * 1.5;
         const lead = _v2.copy(P.pos).addScaledVector(P.vel, d / 32 * 0.4);
         lead.x += (Math.random() - 0.5) * 4;
@@ -1251,11 +1409,12 @@ function updatePursuers(dt) {
       u.group.rotation.z = 0;
     }
   }
-  if (isFinite(minD) && minD < 30 && elapsed - lastSiren > 1.6) { lastSiren = elapsed; sfx.siren(); }
+  if (mode === 'story' && isFinite(minD) && minD < 30 && elapsed - lastSiren > 1.6) { lastSiren = elapsed; sfx.siren(); }
 }
 
-// ---------------------------------------------------------- enemies & pedestrians
+// ---------------------------------------------------------- gunners & peds
 function enemyHostile(e) {
+  if (mode !== 'story') return false;
   if (e.guard) return true;
   if (e.goon) return chainIdx >= 2 || e.group.position.distanceTo(P.pos) < 10;
   return true;
@@ -1311,9 +1470,8 @@ function updatePeds(dt) {
   for (const p of peds) {
     if (p.removed) continue;
     if (p.dead) { updateTumble(p, dt); continue; }
-    // panic: run from nearby violence
     const dP = p.group.position.distanceTo(P.pos);
-    if (wantedStars() > 0 && dP < 14) p.panic = 2;
+    if ((wantedStars() > 0 || mode === 'match') && dP < 14) p.panic = 2;
     if (p.panic > 0) {
       p.panic -= dt;
       _v1.copy(p.group.position).sub(P.pos).setY(0).normalize();
@@ -1337,7 +1495,7 @@ function updateProjectiles(dt) {
     pr.mesh.position.addScaledVector(pr.vel, dt);
     pr.life -= dt;
     if (canHit && pr.mesh.position.distanceTo(P.pos) < 1.4) {
-      hurt(12);
+      hurt(12, 'Patrol');
       burst(pr.mesh.position, MAT.bullet, 5, 6, 5);
       pr.life = 0;
     }
@@ -1348,25 +1506,22 @@ function updateProjectiles(dt) {
   }
 }
 
-// ---------------------------------------------------------- city interactions
+// ---------------------------------------------------------- story interactions
 function nearXZ(a, b, r, dy) {
   const dx = a.x - b.x, dz = a.z - b.z;
   return dx * dx + dz * dz < r * r && Math.abs(a.y - b.y) < dy;
 }
 
-function updateCity(dt) {
-  // talk by walking up to quest folk
+function updateStory(dt) {
   if (P.state === 'walk' && !dlg && elapsed > talkCd) {
     for (const n of npcs) {
       if (nearXZ(n.pos, P.pos, 3.6, 4)) { n.talk(); break; }
     }
   }
-  // scraps
   if (chainIdx === 5) {
     for (const s of scraps) {
       if (s.taken) continue;
       s.mesh.rotation.y += dt * 2;
-      s.mesh.rotation.x += dt;
       if (nearXZ(s.mesh.position, P.pos, 4, 6)) {
         s.taken = true;
         worldGroup.remove(s.mesh);
@@ -1379,14 +1534,12 @@ function updateCity(dt) {
       }
     }
   }
-  // depot alarm
   if (chainIdx === 7 && !alarm && nearXZ(P.pos, L.depot, 34, 60)) {
     alarm = true;
     P.heat = 100;
     sfx.siren();
     popTextScreen('🚨 DEPOT ALARM — GRAB THE CELL AND RUN!');
   }
-  // fuel cell
   if (chainIdx === 7 && fuelCell && nearXZ(fuelCell.position, P.pos, 3.4, 5)) {
     hasFuel = true;
     worldGroup.remove(fuelCell);
@@ -1394,10 +1547,9 @@ function updateCity(dt) {
     sfx.pickup();
     advanceChain();
   }
-  // the rocket
   if (chainIdx === 8 && nearXZ(P.pos, L.rocket, 9, 14)) {
     alarm = false;
-    win();
+    storyWin();
   }
   if (fuelCell) fuelCell.position.y = 3.2 + Math.sin(elapsed * 2.2) * 0.15;
   if (objectiveBeam && chainIdx < CHAIN.length) {
@@ -1405,7 +1557,9 @@ function updateCity(dt) {
     objectiveBeam.position.x = t.x;
     objectiveBeam.position.z = t.z;
   }
-  // hover cars glide the grid
+}
+
+function updateCars(dt) {
   for (const c of cars) {
     c.t += c.dir * c.speed * dt;
     if (c.t > CITY_R) c.t = -CITY_R;
@@ -1415,61 +1569,53 @@ function updateCity(dt) {
   }
 }
 
-// ---------------------------------------------------------- opening cutscene
+function storyWin() {
+  P.state = 'won';
+  P.score += 500;
+  endSwing(true);
+  ui.crosshair.classList.add('hidden');
+  if (document.exitPointerLock) document.exitPointerLock();
+  saveBest();
+  sfx.win();
+  ui.oTitle.textContent = '🚀 BLAST OFF!';
+  ui.oSub.innerHTML = `The old mail rocket coughs, shudders — and LEAVES. Splort the Slippery escapes again.<br><b>${P.score}</b> score (best ${best}) &nbsp;·&nbsp; <b>${P.punches}</b> KOs`;
+  ui.oControls.classList.add('hidden');
+  ui.playBtn.textContent = 'MAIN MENU';
+  ui.storyBtn.classList.add('hidden');
+  ui.overlay.classList.remove('hidden');
+}
+
+function saveBest() {
+  if (P.score > best) {
+    best = P.score;
+    try { localStorage.setItem('ssw_best', String(best)); } catch (e) {}
+  }
+  ui.best.textContent = best;
+}
+
+// ---------------------------------------------------------- cutscene (story)
 const CUT_LINES = [
   { who: 'GALACTIC PATROL', text: 'SPLORT THE SLIPPERY! By order of the Galactic Patrol you are under arrest for 4,362 counts of grand larceny... and one (1) stolen moon.', dur: 6.0, cam: 'wide' },
   { who: 'GALACTIC PATROL', text: 'Put your tentacles where we can see them. Yes. BOTH of them.', dur: 4.2, cam: 'saucer' },
   { who: 'SPLORT', text: 'Heh... you’ll have to catch me first. This city has ONE rocket left — and it’s got my name on it.', dur: 4.4, cam: 'hero' },
   { who: '', text: '\u{1F6A8} WANTED — SWING! (hold E)', dur: 1.5, cam: 'dive' },
 ];
-
-function roofPos() {
-  return new THREE.Vector3(L.hideout.x, hideoutRoof + 0.3, L.hideout.z);
-}
-
-function buildCutBody() {
-  cutBody = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 0.55, 6, 12), MAT.body);
-  cutBody.add(body);
-  for (const sx of [-0.2, 0.2]) {
-    const ew = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 10), MAT.eyeW);
-    ew.position.set(sx, 0.28, 0.42);
-    cutBody.add(ew);
-    const eb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), MAT.eyeB);
-    eb.position.set(sx, 0.28, 0.54);
-    cutBody.add(eb);
-  }
-  for (const side of [-1, 1]) {
-    const pts = [
-      new THREE.Vector3(side * 0.35, -0.3, 0),
-      new THREE.Vector3(side * 0.9, 0.1, 0.15),
-      new THREE.Vector3(side * 1.15, 0.9, 0.1),
-      new THREE.Vector3(side * 1.0, 1.5, -0.1),
-    ];
-    const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 12, 0.11, 6, false), MAT.tentacle);
-    cutBody.add(tube);
-  }
-  const T = roofPos();
-  cutBody.position.set(T.x, T.y + 0.6, T.z);
-  const mid = pursuers.length >= 2
-    ? pursuers[0].group.position.clone().add(pursuers[1].group.position).multiplyScalar(0.5)
-    : T.clone().add(new THREE.Vector3(10, 5, 10));
-  cutBody.rotation.y = Math.atan2(mid.x - T.x, mid.z - T.z);
-  scene.add(cutBody);
-}
-
 let cutSaucers = [];
+function roofPos() { return new THREE.Vector3(L.hideout.x, hideoutRoof + 0.3, L.hideout.z); }
+
 function startCutscene() {
   cutsceneSeen = true;
   P.state = 'cutscene';
+  playerRig.group.visible = false;
   const T = roofPos();
-  // two saucers strobe over the hideout for the scene
   makePatrolSaucer(new THREE.Vector3(T.x + 12, T.y + 8, T.z + 16));
   makePatrolSaucer(new THREE.Vector3(T.x - 13, T.y + 10, T.z + 13));
   cutSaucers = [pursuers[pursuers.length - 2], pursuers[pursuers.length - 1]];
-  buildCutBody();
+  cutBody = makeSwinger(MAT.body, MAT.tentacle);
+  cutBody.group.position.set(T.x, T.y, T.z);
+  const mid = cutSaucers[0].group.position.clone().add(cutSaucers[1].group.position).multiplyScalar(0.5);
+  cutBody.group.rotation.y = Math.atan2(mid.x - T.x, mid.z - T.z);
   ui.crosshair.classList.add('hidden');
-  ui.hint.classList.add('hidden');
   ui.cutscene.classList.remove('hidden');
   ui.cutSkip.textContent = 'SKIP ▸▸';
   cut = { line: -1, t: 0, from: null, to: null, look: null, dur: 0 };
@@ -1494,12 +1640,12 @@ function cutCam(name) {
   if (name === 'hero') return {
     from: new THREE.Vector3(T.x + (mid.x - T.x) * 0.3, T.y + 2.2, T.z + (mid.z - T.z) * 0.3),
     to: new THREE.Vector3(T.x + (mid.x - T.x) * 0.18, T.y + 1.6, T.z + (mid.z - T.z) * 0.18),
-    look: new THREE.Vector3(T.x, T.y + 1.6, T.z),
+    look: new THREE.Vector3(T.x, T.y + 1.2, T.z),
   };
   return {
     from: camera.position.clone(),
-    to: new THREE.Vector3(T.x, T.y + EYE, T.z),
-    look: new THREE.Vector3(T.x, T.y + EYE, T.z - 10),
+    to: new THREE.Vector3(T.x, T.y + 4, T.z + 8),
+    look: new THREE.Vector3(T.x, T.y + 1, T.z),
   };
 }
 
@@ -1520,16 +1666,22 @@ function nextCutLine() {
 
 function endCutscene() {
   cut = null;
-  if (cutBody) { cutBody.traverse((o) => o.geometry && o.geometry.dispose()); scene.remove(cutBody); cutBody = null; }
+  if (cutBody) {
+    scene.remove(cutBody.group);
+    scene.remove(cutBody.armL); scene.remove(cutBody.armR); scene.remove(cutBody.fist);
+    cutBody = null;
+  }
   ui.cutscene.classList.add('hidden');
   ui.crosshair.classList.remove('hidden');
   const T = roofPos();
   P.state = 'walk';
+  playerRig.group.visible = true;
   P.pos.set(T.x, T.y + EYE, T.z);
+  P.groundY = hideoutRoof;
   P.vel.set(0, 0, 0);
   P.heat = 70;
-  yaw = Math.PI; pitch = 0; // face into the skyline
-  ui.hint.textContent = '\u{1F6A8} WANTED — HOLD E to swing between towers. Click for shift-lock mouse look. Lose them, then follow the GOLD beam.';
+  yaw = Math.PI; pitch = -0.1;
+  ui.hint.textContent = '\u{1F6A8} WANTED — HOLD E to swing. Click for shift-lock. Lose them, then follow the GOLD beam.';
   ui.hint.classList.remove('hidden');
   setTimeout(() => ui.hint.classList.add('hidden'), 8000);
   popTextScreen('NEW QUEST: ' + CHAIN[0].t);
@@ -1543,6 +1695,7 @@ function updateCutscene(dt) {
   const e = k * k * (3 - 2 * k);
   camera.position.lerpVectors(cut.from, cut.to, e);
   camera.lookAt(cut.look);
+  if (cutBody) poseArms(cutBody, elapsed, 0, null, null);
   const chars = Math.floor(cut.t * 42);
   ui.cutText.textContent = L2.text.slice(0, chars);
   if (cut.t >= cut.dur + (L2.cam === 'dive' ? 0 : 0.8)) nextCutLine();
@@ -1558,79 +1711,70 @@ function advanceCutscene() {
   }
 }
 
-// ---------------------------------------------------------- tentacle rendering
-function camPoint(x, y, z) {
-  return _v1.copy(camera.position)
-    .addScaledVector(_camR, x).addScaledVector(_camU, y).addScaledVector(_camF, z).clone();
-}
-
-function updateTentacles(dt) {
-  const t = elapsed;
-  _camR.setFromMatrixColumn(camera.matrixWorld, 0);
-  _camU.setFromMatrixColumn(camera.matrixWorld, 1);
-  _camF.setFromMatrixColumn(camera.matrixWorld, 2).negate();
-
-  const lagX = THREE.MathUtils.clamp(P.vel.dot(_camR) * -0.008, -0.4, 0.4);
-  const lagY = THREE.MathUtils.clamp(P.vel.dot(_camU) * -0.008, -0.3, 0.3);
-  const bases = [[-0.45, -0.38], [0.45, -0.38]];
-  for (let i = 0; i < 2; i++) {
-    const [bx, by] = bases[i];
-    const sway = Math.sin(t * 5 + i * 2.1) * 0.2;
-    const sway2 = Math.cos(t * 4 + i * 1.6) * 0.15;
-    const base = camPoint(bx, by, 0.5);
-    const p1 = camPoint(bx * 1.15 + sway * 0.5, by - 0.05 + sway2 * 0.3, 1.05);
-    const p2 = camPoint(bx * 1.35 + sway + lagX, by - 0.08 + sway2 * 0.6 + lagY, 1.75);
-    setTube(idleTubes[i], [base, p1, p2], 0.09, 8);
-  }
-
-  if (swing && P.state === 'swing') {
-    const start = camPoint(0.5, -0.45, 0.8);
-    const end = swing.anchor;
-    const mid = start.clone().lerp(end, 0.5);
-    mid.y += start.distanceTo(end) * 0.02;
-    setTube(swingTube, [start, mid, end.clone()], 0.13, 12);
-    swingFist.position.copy(end);
-  }
-
-  updatePunch(dt);
-}
-
-// ---------------------------------------------------------- camera
+// ---------------------------------------------------------- third-person camera
 function updateCamera(dt) {
-  camera.position.copy(P.pos).add(_v1.set(0, 0.4, 0));
-  if (shake > 0.001) {
-    camera.position.x += (Math.random() - 0.5) * shake * 0.5;
-    camera.position.y += (Math.random() - 0.5) * shake * 0.5;
-    shake *= Math.exp(-6 * dt);
-  }
-
   if (!pointerLocked) {
-    // fallback look: push the mouse toward the screen edge to turn
     const dead = 0.12;
     if (Math.abs(mouse.x) > dead) {
       const m = (Math.abs(mouse.x) - dead) / (1 - dead);
       yaw += Math.sign(mouse.x) * m * m * 2.6 * dt;
     }
-    pitch = THREE.MathUtils.clamp(-mouse.y * 0.7, -1.2, 1.2);
+    pitch = THREE.MathUtils.clamp(-mouse.y * 0.7 - 0.1, -1.1, 0.9);
   }
-  if (keys['KeyQ']) yaw -= 2.2 * dt;
   camFwd.set(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)).normalize();
-  camera.lookAt(_v1.copy(camera.position).add(camFwd));
 
-  // bank into the swing
-  let rollTarget = 0;
-  if (P.state === 'swing') {
-    _v2.crossVectors(camFwd, _v3.set(0, 1, 0)).normalize();
-    rollTarget = THREE.MathUtils.clamp(P.vel.dot(_v2) * -0.01, -0.35, 0.35);
+  // boom: behind and above the player, pulled in when a tower is in the way
+  const boomLen = 7.5;
+  const target = _v1.copy(P.pos).add(_v3.set(0, 1.1, 0)).clone();
+  let camPos = target.clone().addScaledVector(camFwd, -boomLen);
+  camPos.y = Math.max(camPos.y, 1.2);
+  // simple occlusion: march along the boom, shorten if inside a building
+  for (let k = 1; k <= 6; k++) {
+    const t = k / 6;
+    _v2.lerpVectors(target, camPos, t);
+    let blocked = false;
+    for (const b of buildings) {
+      if (_v2.x > b.minX && _v2.x < b.maxX && _v2.z > b.minZ && _v2.z < b.maxZ && _v2.y < b.h) { blocked = true; break; }
+    }
+    if (blocked) {
+      camPos = _v2.clone().lerp(target, 0.18);
+      break;
+    }
   }
-  roll += (rollTarget - roll) * (1 - Math.exp(-6 * dt));
-  camera.rotateZ(roll);
+  camera.position.lerp(camPos, 1 - Math.exp(-14 * dt));
+  if (shake > 0.001) {
+    camera.position.x += (Math.random() - 0.5) * shake * 0.5;
+    camera.position.y += (Math.random() - 0.5) * shake * 0.5;
+    shake *= Math.exp(-6 * dt);
+  }
+  camera.lookAt(_v2.copy(target).addScaledVector(camFwd, 6));
 
   const speed = P.vel.length();
-  fovTarget = 76 + Math.min(26, speed * 0.55);
+  fovTarget = 74 + Math.min(24, speed * 0.5);
   fov += (fovTarget - fov) * (1 - Math.exp(-6 * dt));
   camera.fov = fov;
   camera.updateProjectionMatrix();
+}
+
+// player body follows physics + faces movement
+function updatePlayerRig(dt) {
+  const g = playerRig.group;
+  g.position.set(P.pos.x, P.pos.y - EYE, P.pos.z);
+  // face where you're going (or the camera direction when idle)
+  let fx = camFwd.x, fz = camFwd.z;
+  if (P.vel.lengthSq() > 4) { fx = P.vel.x; fz = P.vel.z; }
+  const targetYaw = Math.atan2(fx, fz);
+  let dy = targetYaw - g.rotation.y;
+  while (dy > Math.PI) dy -= Math.PI * 2;
+  while (dy < -Math.PI) dy += Math.PI * 2;
+  g.rotation.y += dy * (1 - Math.exp(-10 * dt));
+  // lean into swings
+  g.rotation.x = P.state === 'swing' ? THREE.MathUtils.clamp(P.vel.length() * 0.012, 0, 0.5) : 0;
+
+  let reach = null;
+  if (P.state === 'swing' && swing) reach = swing.anchor;
+  else if (P.attackAnim) reach = P.attackAnim.reach;
+  poseArms(playerRig, elapsed, 0, reach, P.vel);
 }
 
 // ---------------------------------------------------------- HUD
@@ -1639,12 +1783,10 @@ function updateHUD() {
   ui.hp.classList.toggle('low', P.hp <= 30);
   ui.score.textContent = P.score;
   const stars = wantedStars();
-  ui.wanted.textContent = stars > 0 ? '🚨' + '★'.repeat(stars) + '☆'.repeat(3 - stars) : '☆☆☆';
-  ui.wanted.classList.toggle('hot', stars > 0);
+  ui.wanted.textContent = mode === 'story' ? (stars > 0 ? '🚨' + '★'.repeat(stars) + '☆'.repeat(3 - stars) : '☆☆☆') : '';
+  ui.wanted.classList.toggle('hot', mode === 'story' && stars > 0);
 
-  if (P.state === 'menu' || P.state === 'cutscene') {
-    ui.questBar.classList.add('hidden');
-  } else if (chainIdx < CHAIN.length && P.state !== 'won') {
+  if (mode === 'story' && P.state !== 'menu' && P.state !== 'cutscene' && chainIdx < CHAIN.length && P.state !== 'won') {
     ui.questBar.classList.remove('hidden');
     const C = CHAIN[chainIdx];
     ui.questTitle.textContent = C.t;
@@ -1657,8 +1799,130 @@ function updateHUD() {
     ui.questBar.classList.add('hidden');
   }
 
-  const canPunch = !P.punchAnim && (P.state === 'walk' || P.state === 'air' || P.state === 'swing') && pickPunchTarget();
-  ui.crosshair.classList.toggle('lock', !!canPunch);
+  if (mode === 'match' && !matchOver) {
+    ui.matchHud.classList.remove('hidden');
+    const m = Math.floor(Math.max(0, matchTime) / 60);
+    const s = Math.floor(Math.max(0, matchTime) % 60);
+    ui.matchTimer.textContent = `${m}:${String(s).padStart(2, '0')}`;
+    ui.matchScore.textContent = `KOs ${P.kos} · Deaths ${P.deaths}`;
+  } else {
+    ui.matchHud.classList.add('hidden');
+  }
+
+  if (elapsed - P.comboT > 1.4 && P.comboCount > 0) {
+    P.comboCount = 0;
+    ui.combo.classList.add('hidden');
+  }
+
+  const canHit = (P.state === 'walk' || P.state === 'air' || P.state === 'swing') && nearestTarget(MELEE_RANGE);
+  ui.crosshair.classList.toggle('lock', !!canHit);
+}
+
+function updateScoreboard() {
+  const rows = [{ name: 'You (Splort)', kos: P.kos, deaths: P.deaths, you: true }]
+    .concat(bots.map((b) => ({ name: b.name, kos: b.kos, deaths: b.deaths })));
+  rows.sort((a, b) => b.kos - a.kos || a.deaths - b.deaths);
+  ui.boardRows.innerHTML = rows.map((r) =>
+    `<div class="brow${r.you ? ' you' : ''}"><span>${r.name}</span><span>${r.kos}</span><span>${r.deaths}</span></div>`
+  ).join('');
+  return rows;
+}
+
+// ---------------------------------------------------------- match flow
+function startQuickMatch() {
+  audioCtx();
+  ui.overlay.classList.add('hidden');
+  ui.mm.classList.remove('hidden');
+  ui.mmList.innerHTML = '<div class="mm-row">Searching the galaxy for swingers<span class="dots">...</span></div>';
+  const names = [];
+  const pool = BOT_NAMES.slice();
+  for (let i = 0; i < 3; i++) names.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  names.forEach((n, i) => {
+    setTimeout(() => {
+      sfx.join();
+      const row = document.createElement('div');
+      row.className = 'mm-row found';
+      row.textContent = `${n} joined · ${12 + Math.floor(Math.random() * 80)}ms`;
+      ui.mmList.appendChild(row);
+    }, 900 + i * 800);
+  });
+  setTimeout(() => {
+    ui.mm.classList.add('hidden');
+    showLobby(names);
+  }, 900 + 3 * 800 + 700);
+}
+
+function showLobby(names) {
+  ui.lobby.classList.remove('hidden');
+  ui.lobbyList.innerHTML =
+    `<div class="lb-row you"><span>You (Splort)</span><span class="rdy">READY</span></div>` +
+    names.map((n) => `<div class="lb-row"><span>${n}</span><span class="rdy">READY</span></div>`).join('');
+  let count = 3;
+  ui.lobbyCount.textContent = count;
+  sfx.count();
+  const iv = setInterval(() => {
+    count--;
+    if (count > 0) {
+      ui.lobbyCount.textContent = count;
+      sfx.count();
+    } else {
+      clearInterval(iv);
+      ui.lobby.classList.add('hidden');
+      sfx.go();
+      beginMatch(names);
+    }
+  }, 1000);
+}
+
+function beginMatch(names) {
+  mode = 'match';
+  matchOver = false;
+  matchTime = MATCH_TIME;
+  P.kos = 0; P.deaths = 0; P.score = 0; P.hp = 100;
+  P.comboCount = 0;
+  chainIdx = CHAIN.length; // no quest UI
+  ui.killfeed.innerHTML = '';
+  // clear old bots
+  for (const b of bots) {
+    scene.remove(b.group);
+    scene.remove(b.rig.armL); scene.remove(b.rig.armR); scene.remove(b.rig.fist);
+  }
+  bots.length = 0;
+  const namePool = names.slice();
+  for (let i = 0; i < 3; i++) {
+    const bot = spawnBot(i);
+    if (namePool[i]) bot.name = namePool[i];
+  }
+  const s = randPick(spawnRoofs);
+  P.pos.set(s.x, s.y, s.z);
+  P.groundY = s.y - EYE;
+  P.vel.set(0, 0, 0);
+  P.state = 'walk';
+  playerRig.group.visible = true;
+  yaw = Math.atan2(-s.x, -s.z) + Math.PI; // face the city center
+  popTextScreen('DEATHMATCH — most KOs in 3:00 wins. HOLD E to swing!');
+  killfeed('Match started — Novoya Sprawl');
+}
+
+function endMatch() {
+  matchOver = true;
+  endSwing(true);
+  P.state = 'won';
+  saveBest();
+  if (document.exitPointerLock) document.exitPointerLock();
+  const rows = updateScoreboard();
+  const winner = rows[0];
+  const youWon = !!winner.you;
+  sfx.win();
+  ui.oTitle.textContent = youWon ? '🏆 VICTORY!' : `🏆 ${winner.name} WINS`;
+  ui.oSub.innerHTML = rows.map((r, i) =>
+    `${i + 1}. ${r.you ? '<b>' : ''}${r.name} — ${r.kos} KOs / ${r.deaths} deaths${r.you ? '</b>' : ''}`
+  ).join('<br>');
+  ui.oControls.classList.add('hidden');
+  ui.playBtn.textContent = 'REMATCH';
+  ui.storyBtn.textContent = 'MAIN MENU';
+  ui.storyBtn.classList.remove('hidden');
+  ui.overlay.classList.remove('hidden');
 }
 
 // ---------------------------------------------------------- main loop
@@ -1669,19 +1933,19 @@ function frame() {
   elapsed += dt;
 
   switch (P.state) {
-    case 'menu':
-      {
-        const a = elapsed * 0.1;
-        const T = roofPos();
-        camera.position.set(T.x + Math.cos(a) * 45, T.y + 18, T.z + Math.sin(a) * 45);
-        camera.lookAt(T.x, T.y - 6, T.z);
-      }
+    case 'menu': {
+      const a = elapsed * 0.1;
+      const T = roofPos();
+      camera.position.set(T.x + Math.cos(a) * 45, T.y + 18, T.z + Math.sin(a) * 45);
+      camera.lookAt(T.x, T.y - 6, T.z);
       break;
-
+    }
     case 'cutscene':
       updateCutscene(dt);
       break;
-
+    case 'dead':
+      if (elapsed > P.respawnAt) respawnMatch();
+      break;
     case 'walk': {
       let mvF = 0, mvS = 0;
       if (!dlg) {
@@ -1692,13 +1956,12 @@ function frame() {
       }
       if (mvF !== 0 || mvS !== 0) {
         _v1.set(camFwd.x, 0, camFwd.z).normalize();
-        _v2.crossVectors(_v1, _v3.set(0, 1, 0)).multiplyScalar(-1); // left
-        const move = _v1.multiplyScalar(mvF).addScaledVector(_v2, -mvS);
+        _v2.crossVectors(_v1, _v3.set(0, 1, 0));
+        const move = _v1.multiplyScalar(mvF).addScaledVector(_v2, mvS);
         move.normalize();
         const nx = P.pos.x + move.x * WALK_SPEED * dt;
         const nz = P.pos.z + move.z * WALK_SPEED * dt;
         const curG = P.groundY;
-        // wall check: don't walk into a face more than a step up
         const gBoth = groundAt(nx, nz);
         if (gBoth <= curG + 1.2) { P.pos.x = nx; P.pos.z = nz; }
         else {
@@ -1713,51 +1976,38 @@ function frame() {
       const r = Math.hypot(P.pos.x, P.pos.z);
       if (r > CITY_R) { P.pos.x *= CITY_R / r; P.pos.z *= CITY_R / r; }
       const g = groundAt(P.pos.x, P.pos.z);
-      if (g < P.groundY - 2.5) {
-        // walked off an edge
-        P.state = 'air';
-      } else {
+      if (g < P.groundY - 2.5) P.state = 'air';
+      else {
         P.groundY = Math.max(g, 0.2);
-        P.pos.y = P.groundY + EYE + Math.sin(elapsed * 9) * (keys['KeyW'] ? 0.04 : 0);
+        P.pos.y = P.groundY + EYE;
       }
       break;
     }
-
     case 'air': {
       P.vel.y -= 28 * dt;
-      // a little air control
       _v1.set(camFwd.x, 0, camFwd.z).normalize();
       if (keys['KeyW'] || keys['ArrowUp']) P.vel.addScaledVector(_v1, 7 * dt);
       P.pos.addScaledVector(P.vel, dt);
-      const prevY = P.pos.y;
-      collide(dt, prevY);
+      collide();
       break;
     }
-
     case 'swing': {
       applySwingPhysics(dt);
-      collide(dt, P.pos.y);
-      trailT -= dt;
-      if (trailT <= 0) { trailT = 0.04; burst(P.pos, MAT.spore, 1, 0.5, 0.5); }
+      collide();
       break;
     }
   }
 
-  // swing anchor preview
+  // anchor preview
   if ((P.state === 'walk' || P.state === 'air') && !dlg) {
     const a = findAnchor();
     if (a) {
       anchorMarker.visible = true;
       anchorMarker.position.copy(a);
       anchorMarker.scale.setScalar(1 + Math.sin(elapsed * 8) * 0.2);
-    } else {
-      anchorMarker.visible = false;
-    }
-  } else {
-    anchorMarker.visible = false;
-  }
+    } else anchorMarker.visible = false;
+  } else anchorMarker.visible = false;
 
-  // ambient
   for (const n of npcs) n.group.rotation.y = Math.atan2(P.pos.x - n.pos.x, P.pos.z - n.pos.z);
   mist.position.x = camera.position.x;
   mist.position.z = camera.position.z;
@@ -1766,20 +2016,34 @@ function frame() {
   skyGroup.position.x = camera.position.x;
   skyGroup.position.z = camera.position.z;
 
-  if (P.state !== 'menu' && P.state !== 'cutscene' && P.state !== 'won') {
+  const inGame = P.state !== 'menu' && P.state !== 'cutscene' && P.state !== 'won';
+  if (inGame) {
     updateWanted(dt);
-    updateCity(dt);
+    if (mode === 'story') updateStory(dt);
+    if (mode === 'match' && !matchOver) {
+      matchTime -= dt;
+      updateBots(dt);
+      if (keys['Tab']) { ui.board.classList.remove('hidden'); updateScoreboard(); }
+      else ui.board.classList.add('hidden');
+      if (matchTime <= 0) endMatch();
+    }
+    updateAttack(dt);
   }
+  updateCars(dt);
   updateEnemies(dt);
   updatePeds(dt);
   updateProjectiles(dt);
   updatePlayerShots(dt);
   updatePursuers(dt);
   updateParticles(dt);
-  if (P.state !== 'menu' && P.state !== 'cutscene') updateCamera(dt);
-  const firstPerson = P.state === 'walk' || P.state === 'air' || P.state === 'swing';
-  for (const tube of idleTubes) tube.visible = firstPerson;
-  updateTentacles(dt);
+  if (inGame && P.state !== 'dead') {
+    updateCamera(dt);
+    updatePlayerRig(dt);
+  }
+  playerRig.group.visible = inGame && P.state !== 'dead';
+  playerRig.armL.visible = playerRig.group.visible;
+  playerRig.armR.visible = playerRig.group.visible;
+  if (!playerRig.group.visible) playerRig.fist.visible = false;
   updateHUD();
 
   renderer.render(scene, camera);
@@ -1789,9 +2053,9 @@ renderer.setAnimationLoop(frame);
 // ---------------------------------------------------------- input
 window.addEventListener('keydown', (ev) => {
   keys[ev.code] = true;
+  if (ev.code === 'Tab') ev.preventDefault();
   if (ev.repeat) return;
   if (ev.code === 'ShiftLeft' || ev.code === 'ShiftRight') {
-    // shift lock toggle
     if (pointerLocked) { if (document.exitPointerLock) document.exitPointerLock(); }
     else requestLock();
     return;
@@ -1805,11 +2069,9 @@ window.addEventListener('keydown', (ev) => {
     if (dlg) { advanceDialog(); return; }
     if (P.state === 'cutscene') advanceCutscene();
     else if (P.state === 'walk') { P.vel.set(P.vel.x, 11, P.vel.z); P.state = 'air'; sfx.jump(); }
-    else if (P.state === 'won') window.location.reload();
-    else if (P.state === 'menu') startGame();
     return;
   }
-  if (ev.code === 'KeyF') { tryPunch(); return; }
+  if (ev.code === 'KeyF') { attack(); return; }
 });
 window.addEventListener('keyup', (ev) => {
   keys[ev.code] = false;
@@ -1821,14 +2083,19 @@ renderer.domElement.addEventListener('pointerdown', (ev) => {
   if (ev.button !== 0) return;
   if (dlg) { advanceDialog(); return; }
   if (P.state === 'cutscene') { advanceCutscene(); return; }
-  if (P.state === 'menu' || P.state === 'won') return;
-  if (!pointerLocked) requestLock(); // first click = shift lock on
-  if (hasGun) fireZapper(); else tryPunch();
+  if (P.state === 'menu' || P.state === 'won' || P.state === 'dead') return;
+  if (!pointerLocked) requestLock();
+  if (mode === 'story' && hasGun) fireZapper(); else attack();
 });
 
 ui.playBtn.addEventListener('click', () => {
-  if (P.state === 'won') window.location.reload();
-  else startGame();
+  if (P.state === 'won' && mode === 'match') { ui.overlay.classList.add('hidden'); beginMatch(bots.map((b) => b.name)); return; }
+  if (P.state === 'won') { window.location.reload(); return; }
+  startQuickMatch();
+});
+ui.storyBtn.addEventListener('click', () => {
+  if (P.state === 'won') { window.location.reload(); return; }
+  startStory();
 });
 ui.cutSkip.addEventListener('pointerdown', (ev) => {
   ev.stopPropagation();
@@ -1837,16 +2104,19 @@ ui.cutSkip.addEventListener('pointerdown', (ev) => {
 });
 
 // ---------------------------------------------------------- boot
-function startGame() {
+function startStory() {
   audioCtx();
+  mode = 'story';
   P.startTime = performance.now();
   ui.overlay.classList.add('hidden');
   ui.crosshair.classList.remove('hidden');
+  if (objectiveBeam) objectiveBeam.visible = true;
   const T = roofPos();
   P.state = 'walk';
   P.groundY = hideoutRoof;
   P.pos.set(T.x, hideoutRoof + EYE, T.z);
-  yaw = Math.PI; pitch = 0;
+  playerRig.group.visible = true;
+  yaw = Math.PI; pitch = -0.1;
   if (!cutsceneSeen) startCutscene();
 }
 
@@ -1857,13 +2127,14 @@ P.pos.set(L.spawn.x, 0.2 + EYE, L.spawn.z);
 // exposed for automated smoke tests
 window.__game = P;
 window.__debug = {
-  P, buildings, enemies, peds, pursuers, npcs, scraps, L,
-  chain: () => ({ chainIdx, questN, disguised, hasGun, hasFuel, alarm }),
+  P, buildings, enemies, peds, pursuers, npcs, scraps, bots, L, spawnRoofs,
+  chain: () => ({ chainIdx, questN, disguised, hasGun, hasFuel, alarm, mode, matchTime, matchOver }),
   advanceChain, setHeat: (h) => { P.heat = h; },
   dlgOpen: () => !!dlg, advanceDialog, clearTalk: () => { talkCd = 0; },
-  giveGun: () => { hasGun = true; }, fire: fireZapper, playerShots,
+  giveGun: () => { hasGun = true; }, fire: fireZapper,
   startSwing, endSwing, findAnchor, swing: () => swing,
   camFwd: () => camFwd, setYaw: (y) => { yaw = y; }, setPitch: (p) => { pitch = p; },
-  fuel: () => fuelCell, rocketRef: () => rocket, groundAt,
+  fuel: () => fuelCell, groundAt, attack, endMatch,
+  startQuickMatch, beginMatch, startStory,
   endCutscene: () => cut && endCutscene(),
 };
