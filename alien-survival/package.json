@@ -1,8 +1,8 @@
 {
-  "name": "tentacle-tree-parkour",
+  "name": "xenoterra",
   "version": "1.0.0",
   "private": true,
-  "description": "3D tree parkour game — grapple through the canopy with tentacles, slow-mo number QTEs, punch the little gunners.",
+  "description": "First-person voxel survival on an alien planet — mine, build, eat, survive the night.",
   "type": "module",
   "scripts": {
     "build": "node build.mjs"

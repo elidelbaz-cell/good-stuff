@@ -24,7 +24,7 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Space Swinger</title>
+<title>Xenoterra</title>
 <style>
 ${css}</style>
 </head>
@@ -39,7 +39,7 @@ console.log(`built index.html (${(html.length / 1024).toFixed(0)} KB)`);
 
 // body-only variant for embedding (e.g. Claude Artifacts wrap their own skeleton)
 if (process.env.BODY_OUT) {
-  const body = `<title>Space Swinger</title>
+  const body = `<title>Xenoterra</title>
 <style>
 ${css}</style>
 ${ui}<script>
