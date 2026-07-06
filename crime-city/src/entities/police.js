@@ -314,7 +314,7 @@ export class Police {
       for (const u of G.squad.units) {
         if (u.state === 'down') continue;
         const d = dist2D(cop.pos.x, cop.pos.z, u.pos.x, u.pos.z);
-        if (d < best.d * 0.8) best = { ref: { damage: (a) => u.damage(a), pos: u.pos, isPlayer: false }, d };
+        if (d < best.d * 0.8) best = { ref: { damage: (a) => G.squad.damage(u, a), pos: u.pos, isPlayer: false }, d };
       }
     }
     return best.ref ? best : { ref: { damage: (a) => G.player.damage(a), pos: G.player.pos, isPlayer: true }, d: 1e9 };

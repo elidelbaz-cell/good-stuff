@@ -17,7 +17,9 @@ import { Base } from './base/base.js';
 import { FX } from './fx/fx.js';
 import { Weapons } from './player/weapons.js';
 import { Police } from './entities/police.js';
+import { Squad } from './entities/squad.js';
 import { Economy } from './systems/economy.js';
+import { Activities } from './systems/activities.js';
 import { PLAYER } from './core/config.js';
 
 const canvas = document.getElementById('game');
@@ -56,7 +58,9 @@ G.base = new Base(G);
 G.fx = new FX(G);
 G.economy = new Economy(G);
 G.police = new Police(G);
+G.squad = new Squad(G);
 G.weapons = new Weapons(G);
+G.activities = new Activities(G);
 
 // if pointer lock is ever lost without pausing (or lock() failed), a click re-locks
 canvas.addEventListener('click', () => {
@@ -70,6 +74,7 @@ function applyState() {
   G.economy?.syncFromState();
   G.weapons?.syncFromState();
   G.squad?.syncFromState();
+  G.activities?.syncFromState();
   G.police?.clearAll();
   G.player.reset(true);
 }
