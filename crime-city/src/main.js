@@ -14,6 +14,11 @@ import { Minimap } from './ui/minimap.js';
 import { Menus } from './ui/menus.js';
 import { Shop } from './ui/shop.js';
 import { Base } from './base/base.js';
+import { FX } from './fx/fx.js';
+import { Weapons } from './player/weapons.js';
+import { Police } from './entities/police.js';
+import { Economy } from './systems/economy.js';
+import { PLAYER } from './core/config.js';
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -48,6 +53,10 @@ G.hud = new HUD(G);
 G.minimap = new Minimap(G);
 G.shop = new Shop(G);
 G.base = new Base(G);
+G.fx = new FX(G);
+G.economy = new Economy(G);
+G.police = new Police(G);
+G.weapons = new Weapons(G);
 
 // if pointer lock is ever lost without pausing (or lock() failed), a click re-locks
 canvas.addEventListener('click', () => {
@@ -58,8 +67,10 @@ function applyState() {
   G.hud.setMob(G.state.mobName, G.state.mobColor);
   G.sky.setNight(G.state.night);
   G.base?.applyMobStyle();
+  G.economy?.syncFromState();
   G.weapons?.syncFromState();
   G.squad?.syncFromState();
+  G.police?.clearAll();
   G.player.reset(true);
 }
 
@@ -113,6 +124,17 @@ G.menus = new Menus(G, {
 });
 G.menus.show('main');
 
+// ----- WASTED / down flow -----
+bus.on('playerDown', () => {
+  if (G.finale?.active) { G.finale.onPlayerDown(); return; }
+  const lost = Math.round(G.state.cash * PLAYER.deathCashLoss);
+  G.state.cash -= lost;
+  G.audio.wasted();
+  saveGame(G.state);
+  G.wastedT = 1.1; // brief dramatic pause before the screen
+  G.wastedLost = lost;
+});
+
 function handleGlobalKeys() {
   const inp = G.input;
   if (inp.pressed('KeyN')) {
@@ -155,6 +177,12 @@ function tick() {
 
     G.state.stats.time += dt;
     handleGlobalKeys();
+
+    // dramatic pause, then the WASTED screen
+    if (G.wastedT > 0) {
+      G.wastedT -= dt;
+      if (G.wastedT <= 0) { G.wastedT = 0; G.menus.wasted(G.wastedLost); }
+    }
   } else {
     // slow aerial orbit behind the menus
     if (!G.running) {
