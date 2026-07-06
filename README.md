@@ -9,8 +9,11 @@ no internet required). Just open `web/index.html` and play.
 
 ## ▶ How to play
 
-Open **`web/index.html`** in any modern desktop browser (Chrome, Edge, Firefox).
-No server, no install, no dependencies to download — everything is bundled.
+**Easiest:** open **`volta-soccer.html`** (repo root) — a single self-contained
+file with everything (Three.js, CSS, all game code) inlined. Just double-click it.
+
+Or open the source version at **`web/index.html`**. Either way there's no server,
+no install, and no dependencies to download — everything is bundled.
 
 > Tip: if your browser is strict about `file://`, run a tiny static server from
 > the `web/` folder instead, e.g. `python3 -m http.server` then visit
@@ -57,8 +60,11 @@ before the 90' clock runs out.
 ## Project structure
 
 ```
+volta-soccer.html           ← standalone single-file build (double-click to play)
 web/
 ├── index.html              ← entry point (loads Three.js + the game scripts)
+├── build-standalone.js     ← inlines everything into ../volta-soccer.html
+│                             (run: node web/build-standalone.js)
 ├── css/style.css           ← HUD / overlay styling
 ├── vendor/three.min.js     ← Three.js r128 (MIT), vendored for offline play
 └── js/
