@@ -1,0 +1,138 @@
+/* =========================================================================
+ * style.css — HUD & overlay styling for Low-Poly Volta.
+ * ========================================================================= */
+
+:root {
+  --home: #2f6bff;
+  --away: #ff3b3b;
+  --panel: rgba(10, 14, 22, 0.82);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: #000; color: #fff;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  user-select: none; cursor: default;
+}
+
+#view { display: block; width: 100vw; height: 100vh; }
+
+/* ---- scoreboard --------------------------------------------------------- */
+#scoreboard {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: stretch; gap: 0;
+  background: var(--panel); border-radius: 8px; overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0,0,0,.45);
+  font-weight: 800; letter-spacing: .5px; z-index: 20;
+  border: 1px solid rgba(255,255,255,.08);
+}
+#scoreboard .team {
+  padding: 10px 16px; font-size: 20px; color: #fff;
+  display: flex; align-items: center;
+}
+#scoreboard .score {
+  padding: 10px 16px; font-size: 24px; background: rgba(255,255,255,.06);
+  min-width: 48px; text-align: center;
+}
+#scoreboard #clock {
+  padding: 10px 18px; font-size: 20px; background: #0b0e16;
+  color: #ffd23f; letter-spacing: 1px; align-self: center;
+}
+
+/* ---- commentary --------------------------------------------------------- */
+#commentary {
+  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+  background: rgba(10,14,22,.7); padding: 8px 18px; border-radius: 20px;
+  font-size: 14px; letter-spacing: .3px; z-index: 20; max-width: 70vw;
+  text-align: center; border: 1px solid rgba(255,255,255,.07);
+}
+
+/* ---- radar -------------------------------------------------------------- */
+#radarWrap {
+  position: fixed; bottom: 16px; left: 16px; z-index: 20;
+  background: var(--panel); padding: 8px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.08);
+}
+#radar { display: block; border-radius: 4px; }
+.radarLabel {
+  font-size: 10px; letter-spacing: 2px; opacity: .6; text-align: center;
+  margin-top: 4px;
+}
+
+/* ---- bars --------------------------------------------------------------- */
+#staminaWrap, #power {
+  position: fixed; right: 16px; z-index: 20; width: 200px;
+}
+#staminaWrap { bottom: 60px; }
+#power { bottom: 16px; opacity: 0; transition: opacity .12s; }
+.barLabel { font-size: 10px; letter-spacing: 2px; opacity: .7; margin-bottom: 3px; }
+.bar {
+  height: 12px; background: rgba(0,0,0,.5); border-radius: 6px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+}
+#staminaFill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, #ffb020, #38d17a); transition: width .1s;
+}
+#powerFill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, #ffd23f, #ff5a3c);
+}
+
+/* ---- announcements ------------------------------------------------------ */
+#announce {
+  position: fixed; top: 42%; left: 50%; transform: translate(-50%, -50%) scale(.85);
+  text-align: center; z-index: 25; opacity: 0; pointer-events: none;
+  transition: opacity .25s, transform .25s;
+}
+#announce.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.ann-main {
+  font-size: 72px; font-weight: 900; letter-spacing: 4px;
+  color: #fff; text-shadow: 0 4px 24px rgba(0,0,0,.7), 0 0 40px rgba(255,210,63,.4);
+}
+.ann-sub { font-size: 22px; font-weight: 700; margin-top: 6px; color: #ffd23f; }
+
+/* ---- crosshair ---------------------------------------------------------- */
+#crosshair {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,.75); box-shadow: 0 0 0 2px rgba(0,0,0,.4);
+  z-index: 15; pointer-events: none;
+}
+
+/* ---- controls hint ------------------------------------------------------ */
+#hint {
+  position: fixed; bottom: 16px; right: 16px; display: none;  /* shown via power layout instead */
+}
+
+/* ---- overlay ------------------------------------------------------------ */
+#overlay {
+  position: fixed; inset: 0; z-index: 40; display: flex;
+  align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 40%, rgba(20,40,80,.6), rgba(0,0,0,.88));
+  backdrop-filter: blur(2px);
+}
+#overlay .panel {
+  background: var(--panel); padding: 34px 44px; border-radius: 16px;
+  text-align: center; max-width: 460px;
+  border: 1px solid rgba(255,255,255,.1); box-shadow: 0 20px 60px rgba(0,0,0,.6);
+}
+#overlay h1 {
+  font-size: 40px; font-weight: 900; letter-spacing: 3px;
+  background: linear-gradient(90deg, var(--home), #7fd1ff, var(--away));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+#overlay .tag { opacity: .8; letter-spacing: 6px; font-size: 12px; margin: 6px 0 22px; }
+#overlay .big {
+  font-size: 26px; font-weight: 800; color: #ffd23f; margin-bottom: 20px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+#overlay .controls {
+  list-style: none; text-align: left; display: inline-block;
+  font-size: 14px; line-height: 1.9; opacity: .92;
+}
+#overlay .controls b { color: #7fd1ff; }
+#overlay .fine { margin-top: 20px; font-size: 13px; opacity: .7; }

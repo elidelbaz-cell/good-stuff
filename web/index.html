@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <title>Low-Poly Volta — First-Person Soccer</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <canvas id="view"></canvas>
+
+  <!-- Broadcast scoreboard -->
+  <div id="scoreboard">
+    <span id="nameHome" class="team">BLU</span>
+    <span id="scoreHome" class="score">0</span>
+    <span id="clock">0'00</span>
+    <span id="scoreAway" class="score">0</span>
+    <span id="nameAway" class="team">RED</span>
+  </div>
+
+  <!-- Commentary ticker -->
+  <div id="commentary">Loading…</div>
+
+  <!-- Radar / minimap -->
+  <div id="radarWrap">
+    <canvas id="radar" width="150" height="110"></canvas>
+    <div class="radarLabel">RADAR</div>
+  </div>
+
+  <!-- Stamina -->
+  <div id="staminaWrap">
+    <div class="barLabel">STAMINA</div>
+    <div class="bar"><div id="staminaFill"></div></div>
+  </div>
+
+  <!-- Shot power meter -->
+  <div id="power">
+    <div class="barLabel">POWER</div>
+    <div class="bar"><div id="powerFill"></div></div>
+  </div>
+
+  <!-- Centre announcements -->
+  <div id="announce"></div>
+
+  <!-- Crosshair -->
+  <div id="crosshair"></div>
+
+  <!-- Controls hint -->
+  <div id="hint">
+    <b>WASD</b> move · <b>Mouse</b> look · <b>Shift</b> sprint ·
+    <b>Hold&nbsp;LMB</b> shoot · <b>RMB/F</b> pass · <b>Space</b> tackle
+  </div>
+
+  <!-- Start / pause overlay -->
+  <div id="overlay">
+    <div class="panel">
+      <h1>LOW&#8209;POLY&nbsp;VOLTA</h1>
+      <p class="tag">First-Person Soccer</p>
+      <p class="big">▶ CLICK TO PLAY</p>
+      <ul class="controls">
+        <li><b>WASD</b> — run around the pitch</li>
+        <li><b>Mouse</b> — look / aim</li>
+        <li><b>Shift</b> — sprint (uses stamina)</li>
+        <li><b>Hold Left-Click</b> — charge &amp; shoot</li>
+        <li><b>Right-Click / F</b> — pass to a teammate</li>
+        <li><b>Space</b> — sprint tackle</li>
+        <li><b>Esc</b> — pause</li>
+      </ul>
+      <p class="fine">You're the striker (yellow dot on the radar). Score more than the RED team!</p>
+    </div>
+  </div>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/textures.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/ball.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/hud.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

@@ -1,96 +1,88 @@
-# First-Person Sword Fighting Roblox Game
+# Low-Poly Volta — First-Person Soccer ⚽
 
-A first-person PvP sword fighting game with a spin-based progression system, special abilities, and two maps.
+A first-person, low-poly arcade football game — think **FIFA / Volta**, but you
+play through the eyes of a single striker on the pitch. Built as a **self-contained
+browser game** using [Three.js](https://threejs.org/) (vendored, no build step,
+no internet required). Just open `web/index.html` and play.
 
-## Features
+![screenshot](web/screenshot.png)
 
-- **First-person camera** — fully locked, head accessories hidden from self
-- **10 swords** across 5 rarities (Common → Legendary)
-- **10 unique special abilities** (Burn, Freeze, Chain, PetalBurst, Eruption, Void, Thunder, HealSlash, BloodRush, ShadowStep)
-- **Spin system** — spend 100 coins per spin for a random sword
-- **Coin economy** — earn coins from kills and collectible coin bags on the map
-- **Inventory panel** — view and equip any owned sword
-- **2 maps** that rotate every 3 minutes:
-  - Cherry Blossom — pink trees, torii gate, raised platforms, pond
-  - Volcano — lava pools, erupting cone, rocky islands, damage zones
-- **Kill feed** (top-right), map banner, ability cooldown bar
+## ▶ How to play
 
-## File Structure
+Open **`web/index.html`** in any modern desktop browser (Chrome, Edge, Firefox).
+No server, no install, no dependencies to download — everything is bundled.
 
-```
-src/
-├── ReplicatedStorage/
-│   ├── SwordData.lua          ← ModuleScript — all sword/ability data + RollSword()
-│   └── RemoteSetup.lua        ← Script — creates all RemoteEvents/Functions
-│
-├── ServerScriptService/
-│   ├── EconomyManager.server.lua  ← coins, spins, inventory, equipped sword
-│   ├── CombatHandler.server.lua   ← swing validation, damage, status effects, abilities
-│   ├── MapManager.server.lua      ← builds Cherry Blossom & Volcano maps, rotates them
-│   └── GameManager.server.lua     ← character setup, coin bags
-│
-├── StarterCharacterScripts/
-│   └── FirstPerson.client.lua     ← locks camera to first person, hides own head
-│
-└── StarterPlayerScripts/
-    ├── SwordController.client.lua ← sword model on arm, click to swing, Q for ability, VFX
-    └── GuiController.client.lua   ← HUD, spin button, inventory panel, kill feed
-```
+> Tip: if your browser is strict about `file://`, run a tiny static server from
+> the `web/` folder instead, e.g. `python3 -m http.server` then visit
+> `http://localhost:8000`.
 
-## Installation (Roblox Studio)
+Click the pitch to lock the mouse and kick off.
 
-1. Open a **new Baseplate** project in Roblox Studio.
-2. Enable **Script Editor** and create the scripts manually, or use a plugin like **Rojo** to sync this folder directly.
-
-### Manual setup:
-1. In **ReplicatedStorage**, create two `ModuleScript` objects:
-   - `SwordData` — paste contents of `ReplicatedStorage/SwordData.lua`
-   - `RemoteSetup` — change to a `Script`, paste contents of `ReplicatedStorage/RemoteSetup.lua`
-     *(Move RemoteSetup to ServerScriptService and run it first by setting RunContext = Server)*
-
-2. In **ServerScriptService**, create four `Script` objects:
-   - `RemoteSetup` — paste `RemoteSetup.lua`  ← run this first
-   - `EconomyManager` — paste `EconomyManager.server.lua`
-   - `CombatHandler` — paste `CombatHandler.server.lua`
-   - `MapManager` — paste `MapManager.server.lua`
-   - `GameManager` — paste `GameManager.server.lua`
-
-3. In **StarterCharacterScripts**, create one `LocalScript`:
-   - `FirstPerson` — paste `FirstPerson.client.lua`
-
-4. In **StarterPlayerScripts**, create two `LocalScripts`:
-   - `SwordController` — paste `SwordController.client.lua`
-   - `GuiController` — paste `GuiController.client.lua`
-
-5. In **StarterGui**, set `ResetPlayerGuiOnSpawn = false`.
-
-6. Hit **Play** to test!
-
-### With Rojo:
-1. Install [Rojo](https://rojo.space/)
-2. Run `rojo serve` in this directory
-3. Connect from Roblox Studio
-
-## Controls
+### Controls
 
 | Action | Input |
 |--------|-------|
-| Swing sword | Left Mouse Button |
-| Use ability | Q |
-| Open inventory | Click "Inventory" button |
-| Spin for sword | Click "SPIN" button |
+| Move | **W A S D** (or arrow keys) |
+| Look / aim | **Mouse** |
+| Sprint | **Shift** (drains stamina) |
+| Shoot | **Hold Left-Click** to charge power, release to strike |
+| Pass | **Right-Click** or **F** (auto-aims to the best teammate) |
+| Sprint tackle | **Space** (a short burst to win the ball) |
+| Pause | **Esc** |
+| Replay (at full time) | **Enter** |
 
-## Sword Abilities Reference
+You are the **striker** — the **yellow dot** on the radar. Outscore the RED team
+before the 90' clock runs out.
 
-| Sword | Rarity | Ability | Effect |
-|-------|--------|---------|--------|
-| Iron Sword | Common | None | — |
-| Wooden Sword | Common | None | — |
-| Fire Sword | Uncommon | Burn | 5 dmg/sec for 3s |
-| Frost Blade | Uncommon | Freeze | -60% speed for 2.5s |
-| Lightning Edge | Rare | Chain | Arc to 3 enemies for 50% dmg |
-| Heal Blade | Rare | HealSlash | Heal 25% of damage dealt |
-| Cherry Blossom Blade | Epic | PetalBurst | 20 AOE dmg in 8 studs |
-| Shadow Fang | Epic | ShadowStep | 75% transparent for 4s |
-| Volcano Blade | Legendary | Eruption | 5 lava pillars, 18 dmg each |
-| Void Reaper | Legendary | Void | Teleport behind target |
+## Features
+
+- **True first-person** — the camera is your player's eyes; look down and you see
+  your own boots and the ball at your feet.
+- **Low-poly aesthetic** — flat-shaded footballers, a classic panelled ball,
+  procedurally-drawn pitch markings, sponsor boards and a full crowd — all
+  generated at runtime, zero external assets.
+- **Arcade ball physics** — gravity, bounce, rolling friction, goal-post
+  rebounds and futsal-style perimeter boards that keep play flowing.
+- **Soft dribbling** — the ball stays glued just ahead of your feet as you run,
+  and a well-timed run steals it straight off an opponent.
+- **Charged shooting & smart passing** — hold to power up a strike; passes
+  auto-pick the most dangerous open teammate.
+- **5-a-side AI** — outfield players chase, support, mark and defend based on
+  possession, plus a goalkeeper that tracks the ball and rushes out to clear.
+- **Full match loop** — kickoff, live match clock, goal detection, celebration,
+  restart from the centre spot, full-time result and instant replay.
+- **Broadcast HUD** — scoreboard, match clock, live radar/minimap, stamina and
+  shot-power meters, and a commentary ticker.
+
+## Project structure
+
+```
+web/
+├── index.html              ← entry point (loads Three.js + the game scripts)
+├── css/style.css           ← HUD / overlay styling
+├── vendor/three.min.js     ← Three.js r128 (MIT), vendored for offline play
+└── js/
+    ├── util.js             ← config constants + math helpers
+    ├── textures.js         ← procedural canvas textures (pitch, crowd, ads)
+    ├── world.js            ← scene, lights, pitch, goals, stadium
+    ├── ball.js             ← ball mesh + arcade physics
+    ├── player.js           ← humanoid mesh, running animation, movement + AI
+    ├── input.js            ← keyboard, pointer-lock mouse look, shot charging
+    ├── hud.js              ← DOM HUD + radar rendering
+    └── game.js             ← match orchestration: possession, rules, camera
+```
+
+The scripts are plain (non-module) so the game runs straight from `file://`.
+Top-level classes are shared across files via the global lexical scope, so load
+order in `index.html` matters.
+
+## Tuning
+
+Most of the feel lives in `web/js/util.js` under `CFG` — pitch size, player
+speeds, ball physics, control radius, team size and match length are all there.
+Team colours/names are in `CFG.colors`.
+
+---
+
+*Note: this repository previously hosted a Roblox sword-fighting prototype; those
+files remain under `src/` for reference but are unrelated to the soccer game.*
