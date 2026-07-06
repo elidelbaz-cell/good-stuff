@@ -20,6 +20,7 @@ import { Police } from './entities/police.js';
 import { Squad } from './entities/squad.js';
 import { Economy } from './systems/economy.js';
 import { Activities } from './systems/activities.js';
+import { Finale } from './systems/finale.js';
 import { PLAYER } from './core/config.js';
 
 const canvas = document.getElementById('game');
@@ -61,6 +62,7 @@ G.police = new Police(G);
 G.squad = new Squad(G);
 G.weapons = new Weapons(G);
 G.activities = new Activities(G);
+G.finale = new Finale(G);
 
 // if pointer lock is ever lost without pausing (or lock() failed), a click re-locks
 canvas.addEventListener('click', () => {
@@ -76,6 +78,8 @@ function applyState() {
   G.squad?.syncFromState();
   G.activities?.syncFromState();
   G.police?.clearAll();
+  if (G.finale) { G.finale.active = false; G.finale.state = 'idle'; G.finale.triggered = false; G.finale.stopMusic(); }
+  G.winT = 0; G.loseT = 0; G.wastedT = 0;
   G.player.reset(true);
 }
 
@@ -187,6 +191,15 @@ function tick() {
     if (G.wastedT > 0) {
       G.wastedT -= dt;
       if (G.wastedT <= 0) { G.wastedT = 0; G.menus.wasted(G.wastedLost); }
+    }
+    // finale win / lose screens after a beat
+    if (G.winT > 0) {
+      G.winT -= dt;
+      if (G.winT <= 0) { G.winT = 0; G.menus.win(G.winStats, G.state.mobName); }
+    }
+    if (G.loseT > 0) {
+      G.loseT -= dt;
+      if (G.loseT <= 0) { G.loseT = 0; G.menus.lose(G.finale.waveLabel || 'the last stand'); }
     }
   } else {
     // slow aerial orbit behind the menus

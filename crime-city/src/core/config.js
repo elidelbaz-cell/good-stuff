@@ -79,7 +79,7 @@ export const UPGRADES = {
 };
 
 export const POLICE = {
-  copHP: 60, swatHP: 170, carHP: 130, vanHP: 320, truckHP: 2600,
+  copHP: 60, swatHP: 170, carHP: 130, vanHP: 320, truckHP: 1800,
   copDmg: [4, 8], swatDmg: [7, 12],
   copsByStar: [0, 3, 5, 8, 10, 13],
   carsByStar: [0, 0, 1, 2, 2, 3],

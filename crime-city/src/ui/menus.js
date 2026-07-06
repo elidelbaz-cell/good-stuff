@@ -103,7 +103,7 @@ export class Menus {
   lose(waveLabel) {
     this.G.paused = true;
     this.G.input.unlock();
-    $('lose-sub').textContent = `the NYPD took back the streets on ${waveLabel}. the ${this.G.state.mobName} name still echoes…`;
+    $('lose-sub').textContent = `the NYPD took back the streets on ${waveLabel}. but ${this.G.state.mobName} won't be forgotten…`;
     this.show('lose');
   }
 }
