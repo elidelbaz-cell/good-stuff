@@ -10,8 +10,8 @@ export function defaultState(mobName = 'The Family', mobColor = null) {
     mobColor: mobColor || MOB_COLORS[hashStr(mobName) % MOB_COLORS.length],
     bounty: 0,
     cash: 500,
-    weapons: { pistol: true, tommy: false, shotgun: false },
-    ammo: { pistol: 60, tommy: 0, shotgun: 0 },
+    weapons: { pistol: true, tommy: false, shotgun: false, rifle: false, minigun: false, molotov: false, rpg: false },
+    ammo: { pistol: 60, tommy: 0, shotgun: 0, rifle: 0, minigun: 0, molotov: 0, rpg: 0 },
     upgrades: { doors: false, medical: false, armory: false, lookout: false },
     henchmen: [],            // array of type keys, e.g. ['thug','thug']
     turf: [],                // captured turf ids

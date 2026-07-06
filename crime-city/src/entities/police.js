@@ -550,6 +550,16 @@ export class Police {
     if (ti >= 0) this.G.targets.splice(ti, 1);
   }
 
+  // hand a cop car over to the player (hijack): stop treating it as an enemy
+  releaseCar(car) {
+    const i = this.cars.indexOf(car);
+    if (i >= 0) this.cars.splice(i, 1);
+    const ti = this.G.targets.findIndex((t) => t.ref === car);
+    if (ti >= 0) this.G.targets.splice(ti, 1);
+    car.grp.rotation.z = 0;
+    return car.grp;
+  }
+
   updateCar(car, dt) {
     // blink lights
     car.blinkT += dt;

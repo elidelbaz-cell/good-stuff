@@ -74,6 +74,13 @@ export class Minimap {
     for (const t of G.city.turfSpots) dot(t.x, t.z, t.owned ? mob : '#9aa0ad', 3);
     // bodegas
     for (const b of G.city.bodegas) dot(b.x, b.z, '#ffd24a', 2.2);
+    // drug corners
+    for (const s of G.activities?.drugSpots || []) dot(s.x, s.z, '#2fbf4f', 2.4);
+    // drivable vehicles (heli / ship / cars)
+    for (const v of G.vehicles?.list || []) {
+      if (v.driven) continue;
+      dot(v.pos.x, v.pos.z, v.type === 'heli' || v.type === 'ship' ? '#22d3ee' : '#c9c9d6', v.type === 'ship' ? 5 : 3);
+    }
     // henchmen
     if (G.squad) for (const u of G.squad.units) if (u.state !== 'down') dot(u.pos.x, u.pos.z, '#6dff7a', 2.4);
     // cops (lookout upgrade, or always during the finale)

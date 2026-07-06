@@ -204,17 +204,18 @@ export class Base {
     const G = this.G, st = G.state;
     G.shop.show('WEAPONS WALL', () => {
       const armoryMul = st.upgrades.armory ? 0.6 : 1;
+      const gun = (key, slot, desc, ammo0) => ({
+        name: WEAPONS[key].name, desc: `${desc} (slot ${slot})`, cost: WEAPONS[key].cost,
+        owned: st.weapons[key],
+        onBuy: () => { st.weapons[key] = true; st.ammo[key] += ammo0; G.weapons?.syncFromState(); this.refreshRack(); G.hud.toast(`${WEAPONS[key].name} on the wall`, 'green'); },
+      });
       const items = [
-        {
-          name: 'TOMMY GUN', desc: 'full-auto street sweeper (slot 3)', cost: WEAPONS.tommy.cost,
-          owned: st.weapons.tommy,
-          onBuy: () => { st.weapons.tommy = true; st.ammo.tommy += 80; G.weapons?.syncFromState(); this.refreshRack(); G.hud.toast('TOMMY GUN on the wall', 'green'); },
-        },
-        {
-          name: 'SHOTGUN', desc: 'doors and everything behind them (slot 4)', cost: WEAPONS.shotgun.cost,
-          owned: st.weapons.shotgun,
-          onBuy: () => { st.weapons.shotgun = true; st.ammo.shotgun += 16; G.weapons?.syncFromState(); this.refreshRack(); G.hud.toast('SHOTGUN on the wall', 'green'); },
-        },
+        gun('tommy', 3, 'full-auto street sweeper', 80),
+        gun('shotgun', 4, 'doors and everything behind them', 16),
+        gun('rifle', 5, 'accurate full-auto assault rifle', 60),
+        gun('minigun', 6, 'spin it up, hose the block', 300),
+        gun('molotov', 7, 'throw it — arson & area denial', 5),
+        gun('rpg', 8, 'rockets. big booms.', 3),
       ];
       for (const [key, pack] of Object.entries(AMMO_PACKS)) {
         items.push({
@@ -271,7 +272,7 @@ export class Base {
     this.wasInside = inside;
 
     // stations
-    if (inside && !G.shopOpen) {
+    if (inside && !G.shopOpen && !G.vehicle) {
       for (const s of this.stations) {
         if (Math.hypot(p.x - s.x, p.z - s.z) < s.r) {
           G.interact = { text: s.label };

@@ -315,7 +315,7 @@ export class Squad {
       const d = dist2D(G.player.pos.x, G.player.pos.z, u.pos.x, u.pos.z);
       if (d < reviveD) { reviveD = d; reviveTarget = u; }
     }
-    if (reviveTarget && !G.interact) {
+    if (reviveTarget && !G.interact && !G.vehicle) {
       G.interact = { text: `revive ${reviveTarget.name}`, keyLabel: 'E' };
       if (G.input.pressed('KeyE')) {
         this.reviveUnit(reviveTarget, reviveTarget.maxHp * 0.5);

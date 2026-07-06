@@ -18,16 +18,22 @@ const cssFile = files.find((f) => f.endsWith('.css'));
 const js = readFileSync(join(assets, jsFile), 'utf8').replace(/<\/script>/gi, '<\\/script>');
 const css = cssFile ? readFileSync(join(assets, cssFile), 'utf8') : '';
 
+// Use FUNCTION replacers: the bundle contains `$&`/`$'` sequences that a string
+// replacement would interpret as special patterns and mangle the output.
 // inline CSS: replace the built <link rel="stylesheet"> with a <style>
 html = html.replace(
   /<link[^>]*rel="stylesheet"[^>]*>/,
-  `<style>\n${css}\n</style>`,
+  () => `<style>\n${css}\n</style>`,
 );
 // inline JS: replace the built module <script src=...> with the code itself
 html = html.replace(
   /<script[^>]*type="module"[^>]*src="[^"]*"[^>]*><\/script>/,
-  `<script type="module">\n${js}\n</script>`,
+  () => `<script type="module">\n${js}\n</script>`,
 );
+if (/assets\/index-.*\.js/.test(html)) {
+  console.error('ERROR: external script reference still present — inline failed');
+  process.exit(1);
+}
 
 const out = join(root, 'crime-city.html');
 writeFileSync(out, html);

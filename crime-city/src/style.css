@@ -115,13 +115,14 @@ body { font-family: 'Trebuchet MS', 'Segoe UI', sans-serif; user-select: none; }
   position: absolute; inset: 0; text-align: center; font-family: Impact, sans-serif;
   font-size: 15px; line-height: 15px; color: #fff; text-shadow: 0 1px 0 #000;
 }
-#hotbar { display: flex; gap: 6px; justify-content: center; }
+#hotbar { display: flex; gap: 5px; justify-content: center; }
 .slot {
-  width: 78px; padding: 6px 0 5px 0; background: var(--panel); border: 3px solid var(--border);
+  width: 66px; padding: 6px 0 5px 0; background: var(--panel); border: 3px solid var(--border);
   border-radius: 6px; color: #cfd6ee; position: relative;
 }
 .slot .key { position: absolute; top: 2px; left: 5px; font-size: 10px; color: #8a93b5; font-weight: 700; }
-.slot .wname { font-family: Impact, sans-serif; font-size: 13px; letter-spacing: 1px; }
+.slot .wname { font-family: Impact, sans-serif; font-size: 11px; letter-spacing: 0.5px; }
+.slot .ammo-mini { display: block; font-size: 9px; color: #8a93b5; margin-top: 1px; }
 .slot.active { border-color: var(--gold); color: #fff; box-shadow: 0 0 14px rgba(255, 210, 74, .35); }
 .slot.locked { opacity: .38; }
 .slot.locked .wname::after { content: ' 🔒'; font-size: 9px; }

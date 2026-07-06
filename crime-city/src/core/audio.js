@@ -68,6 +68,9 @@ export class AudioSys {
     } else if (type === 'rifle') {
       this.noise(t, { decay: 0.14, freq: 2400, peak: 0.45 });
       this.tone(t, { freq: 200, end: 70, decay: 0.1, peak: 0.3, type: 'triangle' });
+    } else if (type === 'minigun') {
+      this.noise(t, { decay: 0.06, freq: 1700, peak: 0.4 });
+      this.tone(t, { freq: 130, end: 80, decay: 0.05, peak: 0.32, type: 'sawtooth' });
     } else { // distant / enemy
       this.noise(t, { decay: 0.1, freq: 900, peak: 0.18 });
     }

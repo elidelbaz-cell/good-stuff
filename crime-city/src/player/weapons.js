@@ -1,17 +1,19 @@
 // First-person weapons: low-poly view models, recoil, muzzle flash, tracers,
 // reload, ammo, and hitscan against static geometry + registered targets.
 import * as THREE from 'three';
-import { WEAPONS } from '../core/config.js';
+import { WEAPONS, HOTBAR } from '../core/config.js';
 import { bus } from '../core/bus.js';
 import { box, mat, clamp, damp, rand, raycastColliders } from '../core/utils.js';
 
-const ORDER = ['fists', 'pistol', 'tommy', 'shotgun'];
+const ORDER = HOTBAR;
 
 export class Weapons {
   constructor(G) {
     this.G = G;
     this.slot = 1;
-    this.mag = { pistol: WEAPONS.pistol.mag, tommy: WEAPONS.tommy.mag, shotgun: WEAPONS.shotgun.mag };
+    this.mag = {};
+    for (const k of ORDER) if (WEAPONS[k].mag) this.mag[k] = WEAPONS[k].mag;
+    this.spin = 0;             // minigun spin-up
     this.cooldown = 0;
     this.reloading = false;
     this.reloadT = 0;
@@ -83,6 +85,43 @@ export class Weapons {
     part(shotgun, 0.1, 0.08, 0.3, '#6a4a30', 0.27, -0.4, -0.75);     // pump
     part(shotgun, 0.14, 0.14, 0.2, '#c98a5a', 0.25, -0.34, -0.5);    // hand
     this.shotgunMuzzle = new THREE.Object3D(); this.shotgunMuzzle.position.set(0.27, -0.3, -1.45); shotgun.add(this.shotgunMuzzle);
+
+    // rifle
+    const rifle = g('rifle');
+    part(rifle, 0.09, 0.14, 1.0, '#2b2f36', 0.26, -0.32, -0.85);     // body
+    part(rifle, 0.07, 0.09, 0.5, '#1a1c21', 0.26, -0.3, -1.25);      // barrel
+    part(rifle, 0.09, 0.22, 0.14, '#22242a', 0.26, -0.46, -0.7);     // mag
+    part(rifle, 0.08, 0.16, 0.1, '#3a2b1c', 0.26, -0.46, -0.5);      // grip
+    part(rifle, 0.14, 0.14, 0.2, '#c98a5a', 0.24, -0.34, -0.44);     // hand
+    this.rifleMuzzle = new THREE.Object3D(); this.rifleMuzzle.position.set(0.26, -0.3, -1.5); rifle.add(this.rifleMuzzle);
+
+    // minigun — chunky rotating barrels
+    const minigun = g('minigun');
+    part(minigun, 0.2, 0.24, 0.6, '#33363d', 0.24, -0.3, -0.7);      // receiver
+    this.minigunBarrels = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.7, 8), mat('#1a1c21'));
+    this.minigunBarrels.rotation.x = Math.PI / 2;
+    this.minigunBarrels.position.set(0.24, -0.28, -1.15); minigun.add(this.minigunBarrels);
+    part(minigun, 0.08, 0.2, 0.12, '#22242a', 0.24, -0.48, -0.6);    // grip
+    part(minigun, 0.15, 0.15, 0.2, '#c98a5a', 0.22, -0.36, -0.4);    // hand
+    this.minigunMuzzle = new THREE.Object3D(); this.minigunMuzzle.position.set(0.24, -0.28, -1.5); minigun.add(this.minigunMuzzle);
+
+    // molotov — bottle with a rag flame
+    const molotov = g('molotov');
+    part(molotov, 0.16, 0.34, 0.16, '#3a7d3a', 0.26, -0.4, -0.55);   // bottle
+    this.molotovFlame = part(molotov, 0.08, 0.14, 0.08, '#ffb04a', 0.26, -0.16, -0.55);
+    this.molotovFlame.material = new THREE.MeshBasicMaterial({ color: '#ffb04a' });
+    part(molotov, 0.15, 0.15, 0.2, '#c98a5a', 0.26, -0.42, -0.4);    // hand
+    this.molotovMuzzle = new THREE.Object3D(); this.molotovMuzzle.position.set(0.26, -0.2, -0.7); molotov.add(this.molotovMuzzle);
+
+    // rpg — big launch tube
+    const rpg = g('rpg');
+    part(rpg, 0.2, 0.2, 1.3, '#3a4028', 0.25, -0.3, -0.9);           // tube
+    part(rpg, 0.26, 0.26, 0.3, '#2a2f1c', 0.25, -0.3, -0.4);         // rear
+    part(rpg, 0.06, 0.16, 0.2, '#22242a', 0.25, -0.46, -0.7);        // grip
+    part(rpg, 0.15, 0.15, 0.2, '#c98a5a', 0.23, -0.38, -0.55);       // hand
+    const warhead = part(rpg, 0.24, 0.24, 0.3, '#c0392b', 0.25, -0.3, -1.5); // loaded rocket
+    this.rpgWarhead = warhead;
+    this.rpgMuzzle = new THREE.Object3D(); this.rpgMuzzle.position.set(0.25, -0.3, -1.7); rpg.add(this.rpgMuzzle);
   }
 
   syncFromState() {
@@ -91,7 +130,7 @@ export class Weapons {
   }
 
   setSlot(i, force = false) {
-    if (i < 0 || i > 3) return;
+    if (i < 0 || i >= ORDER.length) return;
     if (!this.slotUnlocked(i)) { this.G.hud?.toast('locked — buy it at the base'); return; }
     if (i === this.slot && !force) return;
     this.slot = i;
@@ -132,9 +171,36 @@ export class Weapons {
       this.startReload();
       return;
     }
+    // minigun needs to spin up before it fires
+    if (w.spinup && this.spin < 0.98) return;
     this.mag[k]--;
     this.cooldown = 1 / w.rate;
-    this.fireShot(w);
+    if (w.throwable) this.throwItem(w);
+    else if (w.rocket) this.launchRocket(w);
+    else this.fireShot(w);
+  }
+
+  throwItem(w) {
+    const G = this.G;
+    this.recoil = Math.min(this.recoil + w.kick, 2.2);
+    G.camera.getWorldDirection(this._d);
+    const from = this.molotovMuzzle.getWorldPosition(new THREE.Vector3());
+    G.projectiles.throwMolotov(from, this._d, true);
+    bus.emit('gunfire', { x: G.player.pos.x, z: G.player.pos.z, radius: 14 });
+    if (this.mag[this.key()] <= 0) this.startReload();
+  }
+
+  launchRocket(w) {
+    const G = this.G;
+    this.recoil = Math.min(this.recoil + w.kick, 2.4);
+    this.recoilKick = w.kick;
+    G.player.shake = Math.min(G.player.shake + 0.35, 0.6);
+    G.camera.getWorldDirection(this._d);
+    const from = this.rpgMuzzle.getWorldPosition(new THREE.Vector3());
+    G.fx.muzzle(from, this._d, 2);
+    G.projectiles.fireRocket(from, this._d, w.dmg, w.splash, true);
+    bus.emit('gunfire', { x: G.player.pos.x, z: G.player.pos.z, radius: 34 });
+    if (this.mag[this.key()] <= 0) this.startReload();
   }
 
   fireShot(w) {
@@ -229,15 +295,12 @@ export class Weapons {
     if (G.shopOpen) return;
     const input = G.input;
 
-    // slot switching: number keys
-    if (input.pressed('Digit1')) this.setSlot(0);
-    if (input.pressed('Digit2')) this.setSlot(1);
-    if (input.pressed('Digit3')) this.setSlot(2);
-    if (input.pressed('Digit4')) this.setSlot(3);
+    // slot switching: number keys 1-8
+    for (let n = 0; n < ORDER.length; n++) if (input.pressed('Digit' + (n + 1))) this.setSlot(n);
     if (input.wheel !== 0) {
       let n = this.slot;
-      for (let i = 0; i < 4; i++) {
-        n = (n + (input.wheel > 0 ? 1 : -1) + 4) % 4;
+      for (let i = 0; i < ORDER.length; i++) {
+        n = (n + (input.wheel > 0 ? 1 : -1) + ORDER.length) % ORDER.length;
         if (this.slotUnlocked(n)) break;
       }
       this.setSlot(n);
@@ -246,8 +309,16 @@ export class Weapons {
 
     // firing
     this.cooldown = Math.max(0, this.cooldown - dt);
-    if (!G.player.dead) {
-      const w = this.current();
+    const w = this.current();
+    // minigun spins up while the trigger is held, spins down when released
+    if (w.spinup && !G.player.dead && input.mouseDown && this.mag[this.key()] > 0) {
+      this.spin = damp(this.spin, 1, 3.5, dt);
+      if (this.minigunBarrels) this.minigunBarrels.rotation.z += this.spin * dt * 30;
+    } else {
+      this.spin = damp(this.spin, 0, 4, dt);
+      if (w.spinup && this.minigunBarrels) this.minigunBarrels.rotation.z += this.spin * dt * 30;
+    }
+    if (!G.player.dead && !G.vehicle) {
       if (w.auto ? input.mouseDown : input.mouseJust) this.tryFire();
     }
 
@@ -282,5 +353,12 @@ export class Weapons {
       this.fistR.position.z = -0.5 - this.punchArm * 0.35;
       this.fistL.position.z = -0.5 - Math.max(0, this.punchArm - 0.5) * 0.2;
     }
+    // molotov rag flicker
+    if (this.models.molotov.visible && this.molotovFlame) {
+      this.molotovFlame.scale.y = 0.7 + Math.abs(Math.sin(performance.now() / 80)) * 0.6;
+    }
+
+    // hide the first-person weapon while driving a vehicle
+    this.rig.visible = !G.vehicle;
   }
 }

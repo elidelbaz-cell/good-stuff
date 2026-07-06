@@ -63,6 +63,18 @@ export class Player {
   update(dt) {
     const { input, camera } = this.G;
 
+    // while driving, the vehicle system owns movement + camera
+    if (this.G.vehicle) {
+      this.pos.copy(this.G.vehicle.pos);
+      this.vel.set(0, 0, 0);
+      this.onGround = true;
+      this.sinceDamage += dt;
+      if (!this.dead && this.sinceDamage > PLAYER.regenDelay && this.hp < this.maxHp) {
+        this.hp = Math.min(this.maxHp, this.hp + PLAYER.regen * dt);
+      }
+      return;
+    }
+
     // ----- look -----
     this.yaw -= input.dx * 0.0022;
     this.pitch = clamp(this.pitch - input.dy * 0.0022, -1.52, 1.52);

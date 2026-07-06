@@ -27,13 +27,14 @@ npm run singlefile   # writes crime-city.html
 
 | Key | Action |
 |-----|--------|
-| **WASD** | move |
+| **WASD** | move / drive |
 | **Mouse** | look / shoot |
 | **Shift** | sprint |
-| **Space** | jump |
-| **1–4 / scroll** | switch weapon (fists / pistol / tommy / shotgun) |
+| **Space** | jump (helicopter: ascend) |
+| **Ctrl** | helicopter: descend |
+| **1–8 / scroll** | weapons (fists, pistol, tommy, shotgun, rifle, minigun, molotov, RPG) |
 | **R** | reload |
-| **E** | interact — base stations, stickups, revive a downed henchman |
+| **E** | interact — rob stores, deal drugs, enter/hijack vehicles, base stations, revive crew |
 | **F / G / T** | squad: follow / hold position / attack my target |
 | **N** | day / night |
 | **Esc** | pause |
@@ -50,15 +51,24 @@ cash · `K` +1 wanted star.
   Walk in to spend cash: unlock weapons, recruit henchmen, buy upgrades
   (reinforced doors / medical / armory / lookout), heal, and save. It's a safe
   zone — until the finale.
-- **Bounty is the progression.** Take out cops (+$50k), wreck cop cars (+$100k),
-  stick up bodegas, take over turf (raise your flag), run escorts, and survive
-  5-star chases. Every bounty tier unlocks a bigger squad and a tougher recruit
-  class (Thugs → Gunmen → Enforcers → Bruisers → Veterans → Bodyguards).
+- **Bounty is the progression.** Make money and infamy a dozen ways:
+  - **Store robberies** — walk in strapped, take out the clerk, then crack the safe.
+  - **Drug corners** — deal product at the green corners (fast cash, brings heat).
+  - **Arson** — torch cars and storefronts with the molotov.
+  - **Vehicle theft** — hijack cop cars, steal the **helicopter** off its dock pad
+    (and fly it, with a chin gun), or take the **cargo ship** moored at the docks.
+  - Plus taking out cops, wrecking cop cars, turf takeovers, escort runs, and
+    surviving 5-star chases.
+- **8 weapons** — fists, pistol, tommy gun, shotgun, assault rifle, minigun,
+  molotov, and RPG.
+- Every bounty tier unlocks a bigger squad and a tougher recruit class:
+  Thugs → Gunmen → Enforcers → Bruisers → Veterans → Bodyguards → **Hitmen →
+  Juggernauts**, up to a **16-man crew**.
 - **Wanted stars 1–5** scale the heat: more cops, cop cars, then SWAT vans and
   shield squads.
-- **The final brawl** — hit $10,000,000 and the whole NYPD converges on your base.
-  You and your full army fight out the front door through escalating waves of
-  police, SWAT, and an armored riot truck. Win → *THE CITY IS YOURS*.
+- **The final brawl** — hit **$50,000,000** and the whole NYPD converges on your
+  base. You and your full army fight out the front door through escalating waves
+  of police, SWAT, and an armored riot truck. Win → *THE CITY IS YOURS*.
 
 Progress (mob name, color, bounty, cash, weapons, upgrades, henchmen, turf) saves
 to `localStorage` automatically whenever you step inside your base.

@@ -15,11 +15,13 @@ import { Menus } from './ui/menus.js';
 import { Shop } from './ui/shop.js';
 import { Base } from './base/base.js';
 import { FX } from './fx/fx.js';
+import { Projectiles } from './fx/projectiles.js';
 import { Weapons } from './player/weapons.js';
 import { Police } from './entities/police.js';
 import { Squad } from './entities/squad.js';
 import { Economy } from './systems/economy.js';
 import { Activities } from './systems/activities.js';
+import { Vehicles } from './systems/vehicles.js';
 import { Finale } from './systems/finale.js';
 import { PLAYER } from './core/config.js';
 
@@ -41,6 +43,7 @@ const G = {
   dynamicColliders: [],   // moving AABBs (cars), rebuilt every frame
   interact: null,         // {text, frac?} set by whichever system owns the prompt this frame
   objectiveMarker: null,  // {x, z} shown on minimap
+  vehicle: null,          // current driven vehicle, or null when on foot
 };
 window.__G = G;
 
@@ -57,11 +60,13 @@ G.minimap = new Minimap(G);
 G.shop = new Shop(G);
 G.base = new Base(G);
 G.fx = new FX(G);
+G.projectiles = new Projectiles(G);
 G.economy = new Economy(G);
 G.police = new Police(G);
 G.squad = new Squad(G);
 G.weapons = new Weapons(G);
 G.activities = new Activities(G);
+G.vehicles = new Vehicles(G);
 G.finale = new Finale(G);
 
 // if pointer lock is ever lost without pausing (or lock() failed), a click re-locks
@@ -77,6 +82,8 @@ function applyState() {
   G.weapons?.syncFromState();
   G.squad?.syncFromState();
   G.activities?.syncFromState();
+  G.projectiles?.clear();
+  G.vehicles?.reset();
   G.police?.clearAll();
   if (G.finale) { G.finale.active = false; G.finale.state = 'idle'; G.finale.triggered = false; G.finale.stopMusic(); }
   G.winT = 0; G.loseT = 0; G.wastedT = 0;
@@ -97,7 +104,7 @@ G.menus = new Menus(G, {
   onNewGame(name, color) {
     G.state = defaultState(name, color);
     begin();
-    G.hud.banner(name, 'take the city — earn a $10,000,000 bounty', 'gold', 4);
+    G.hud.banner(name, 'take the city — earn a $50,000,000 bounty', 'gold', 4);
     G.hud.headline(`new crew calling themselves "${name}" spotted at the docks`);
   },
   onContinue() {
@@ -170,8 +177,10 @@ function tick() {
     G.traffic.update(dt);
     G.peds.update(dt);
     G.pigeons.update(dt);
+    G.vehicles?.update(dt);
     G.player.update(dt);
     G.weapons?.update(dt);
+    G.projectiles?.update(dt);
     G.police?.update(dt);
     G.squad?.update(dt);
     G.base?.update(dt);
