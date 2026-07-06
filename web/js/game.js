@@ -28,18 +28,52 @@ class Game {
     this.restartTimer = 0;
     this.stamina = 1;
     this.dashTimer = 0;
-    this.started = false;
+    this.started = false;              // has the match ever kicked off?
+    this.playing = false;              // is the sim currently running?
+    this.wasLocked = false;            // did we hold pointer lock (for Esc-pause)
 
     this._buildTeams();
     this._resize();
     addEventListener('resize', () => this._resize());
     addEventListener('keydown', (e) => { if (e.code === 'Enter') this._onEnter(); });
 
-    this.input.onLockChange = (locked) => this._onLock(locked);
+    // Click / tap anywhere on the start (or pause) screen to begin or resume.
+    // Crucially this does NOT depend on pointer lock being granted.
+    const startFromClick = () => { if (!this.playing) this.startPlay(); };
+    this.overlay = document.getElementById('overlay');
+    this.overlay.addEventListener('mousedown', startFromClick);
+    this.overlay.addEventListener('touchstart', (e) => { e.preventDefault(); startFromClick(); }, { passive: false });
+
+    // Esc pauses (and releasing pointer lock via Esc pauses too).
+    addEventListener('keydown', (e) => { if (e.code === 'Escape') this.pause(); });
+    this.input.onLockChange = (locked) => {
+      if (locked) this.wasLocked = true;
+      else if (this.playing && this.wasLocked) this.pause();  // Esc released the lock
+    };
 
     this.hud.say('Welcome to Low-Poly Volta Arena — click to kick off!');
     this._last = performance.now();
     requestAnimationFrame((t) => this._loop(t));
+  }
+
+  startPlay() {
+    this.overlay.style.display = 'none';
+    this.playing = true;
+    this.input.active = true;
+    this.wasLocked = false;
+    this.input.requestLock();          // best-effort; fallback look works without it
+    if (!this.started) { this.started = true; this._kickoff('home', true); }
+  }
+
+  pause() {
+    if (!this.playing) return;
+    this.playing = false;
+    this.input.active = false;
+    this.input.charging = false;
+    if (document.pointerLockElement) document.exitPointerLock();
+    const big = this.overlay.querySelector('.big');
+    if (big) big.textContent = '▶ CLICK TO RESUME';
+    this.overlay.style.display = 'flex';
   }
 
   // ---- team / formation setup -------------------------------------------
@@ -82,21 +116,15 @@ class Game {
   outfield(team) { return this.players.filter((p) => p.team === team && !p.isKeeper); }
 
   // ---- lifecycle ---------------------------------------------------------
-  _onLock(locked) {
-    document.getElementById('overlay').style.display = locked ? 'none' : 'flex';
-    if (locked && !this.started) {
-      this.started = true;
-      this._kickoff('home', true);
-    }
-  }
-
   _onEnter() {
     if (this.state === 'fulltime') {
       this.score = { home: 0, away: 0 };
       this.hud.setScore(0, 0);
       this.gameTime = 0;
-      this.started = false;
-      if (this.input.locked) { this.started = true; this._kickoff('home', true); }
+      this.playing = true;
+      this.input.active = true;
+      this.input.requestLock();
+      this._kickoff('home', true);
     }
   }
 
@@ -129,6 +157,8 @@ class Game {
 
   _fullTime() {
     this.state = 'fulltime';
+    this.playing = false;              // stop the sim *before* releasing the lock
+    this.input.active = false;         // so the ensuing unlock doesn't show the pause overlay
     const h = this.score.home, a = this.score.away;
     const res = h > a ? `${CFG.colors.homeName} WIN` : a > h ? `${CFG.colors.awayName} WIN` : 'DRAW';
     this.hud.bigAnnounce('FULL TIME', `${res}  —  ${h} : ${a}   (press Enter to replay)`, 999999);
@@ -332,7 +362,7 @@ class Game {
     dt = Math.min(dt, 0.05);
 
     this.input.update(dt);
-    if (this.input.locked && this.state !== 'fulltime') this._simulate(dt);
+    if (this.playing && this.state !== 'fulltime') this._simulate(dt);
 
     this._updateCamera();
     this.hud.update(dt);
