@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRIME CITY — New Amsterdam</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="ui">
+    <!-- ============ HUD ============ -->
+    <div id="hud" class="hidden">
+      <!-- top center: bounty + wanted -->
+      <div id="bounty-wrap">
+        <div id="bounty-label">BOUNTY</div>
+        <div id="bounty">$0</div>
+        <div id="bounty-pops"></div>
+        <div id="stars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+        <div id="chase-timer" class="hidden">SURVIVE: 60</div>
+      </div>
+
+      <!-- top left: mob / cash / objectives -->
+      <div id="topleft">
+        <div id="hud-mob">THE FAMILY</div>
+        <div id="cash">$500</div>
+        <div id="objective"></div>
+      </div>
+
+      <!-- top right: minimap + wave -->
+      <div id="topright">
+        <canvas id="minimap" width="220" height="220"></canvas>
+        <div id="wave" class="hidden">WAVE 1/7</div>
+        <div id="clock-mode">DAY — press N</div>
+      </div>
+
+      <!-- headline ticker -->
+      <div id="headline" class="hidden"><span id="headline-text"></span></div>
+
+      <!-- center -->
+      <div id="crosshair"><div class="ch-dot"></div></div>
+      <div id="hitmarker" class="hidden">✕</div>
+      <div id="banner" class="hidden">
+        <div id="banner-main"></div>
+        <div id="banner-sub"></div>
+      </div>
+      <div id="interact" class="hidden">E</div>
+
+      <!-- bottom left: squad -->
+      <div id="squad-panel">
+        <div id="squad-head">SQUAD 0/2 <span id="squad-mode">FOLLOW</span></div>
+        <div id="squad-list"></div>
+      </div>
+
+      <!-- bottom center: health + hotbar -->
+      <div id="bottom-center">
+        <div id="health-wrap"><div id="health-fill"></div><div id="health-num">100</div></div>
+        <div id="hotbar">
+          <div class="slot" data-slot="0"><span class="key">1</span><span class="wname">FISTS</span></div>
+          <div class="slot active" data-slot="1"><span class="key">2</span><span class="wname">PISTOL</span></div>
+          <div class="slot locked" data-slot="2"><span class="key">3</span><span class="wname">TOMMY</span></div>
+          <div class="slot locked" data-slot="3"><span class="key">4</span><span class="wname">SHOTGUN</span></div>
+        </div>
+      </div>
+
+      <!-- bottom right: ammo -->
+      <div id="ammo-wrap"><span id="ammo-mag">12</span><span id="ammo-res">/ 60</span><div id="ammo-hint"></div></div>
+
+      <!-- subtitles / barks -->
+      <div id="subtitle" class="hidden"></div>
+
+      <!-- overlays -->
+      <div id="vignette"></div>
+    </div>
+
+    <!-- ============ MENUS ============ -->
+    <div id="menu">
+      <div class="screen" id="screen-main">
+        <h1 class="title">CRIME CITY</h1>
+        <div class="subtitle-line">a low-poly New Amsterdam story</div>
+        <button id="btn-new">NEW GAME</button>
+        <button id="btn-continue" disabled>CONTINUE</button>
+        <button id="btn-controls">CONTROLS</button>
+        <div class="menu-foot">bounty your way to $10,000,000 — then survive the last stand</div>
+      </div>
+
+      <div class="screen hidden" id="screen-name">
+        <h2>NAME YOUR MOB</h2>
+        <input id="mob-name" maxlength="24" placeholder="The Moretti Family" autocomplete="off" />
+        <div id="color-row"></div>
+        <button id="btn-start">TAKE THE CITY</button>
+        <button id="btn-name-back" class="minor">BACK</button>
+      </div>
+
+      <div class="screen hidden" id="screen-controls">
+        <h2>CONTROLS</h2>
+        <div class="controls-grid">
+          <span>WASD</span><span>move</span>
+          <span>MOUSE</span><span>look / shoot</span>
+          <span>SHIFT</span><span>sprint</span>
+          <span>SPACE</span><span>jump</span>
+          <span>1-4 / SCROLL</span><span>weapons</span>
+          <span>R</span><span>reload</span>
+          <span>E</span><span>interact / revive</span>
+          <span>F</span><span>squad: follow me</span>
+          <span>G</span><span>squad: hold position</span>
+          <span>T</span><span>squad: attack my target</span>
+          <span>N</span><span>day / night</span>
+          <span>ESC</span><span>pause</span>
+        </div>
+        <div class="menu-foot">testing keys: [ = +$250k bounty &nbsp; ] = +$5k cash &nbsp; K = +1 wanted star</div>
+        <button id="btn-controls-back" class="minor">BACK</button>
+      </div>
+
+      <div class="screen hidden" id="screen-pause">
+        <h2>PAUSED</h2>
+        <button id="btn-resume">RESUME</button>
+        <button id="btn-pause-controls">CONTROLS</button>
+        <button id="btn-quit">QUIT TO MENU</button>
+        <div class="menu-foot">progress auto-saves at your base</div>
+      </div>
+
+      <div class="screen hidden" id="screen-wasted">
+        <h1 class="wasted-title">WASTED</h1>
+        <div id="wasted-sub">the family drags you back to the warehouse…</div>
+        <button id="btn-respawn">BACK TO THE BASE</button>
+      </div>
+
+      <div class="screen hidden" id="screen-win">
+        <h1 class="win-title">THE CITY IS YOURS</h1>
+        <div id="win-mob" class="lights"></div>
+        <div id="win-stats"></div>
+        <button id="btn-win-continue">KEEP ROAMING</button>
+      </div>
+
+      <div class="screen hidden" id="screen-lose">
+        <h1 class="lose-title">THE FAMILY FALLS</h1>
+        <div id="lose-sub"></div>
+        <button id="btn-retry">RETRY THE BRAWL</button>
+        <button id="btn-lose-quit" class="minor">QUIT TO MENU</button>
+      </div>
+    </div>
+
+    <div id="toasts"></div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
