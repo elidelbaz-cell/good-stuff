@@ -12,6 +12,8 @@ import { Player } from './player/controller.js';
 import { HUD } from './ui/hud.js';
 import { Minimap } from './ui/minimap.js';
 import { Menus } from './ui/menus.js';
+import { Shop } from './ui/shop.js';
+import { Base } from './base/base.js';
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -44,6 +46,13 @@ G.pigeons = new Pigeons(G);
 G.player = new Player(G);
 G.hud = new HUD(G);
 G.minimap = new Minimap(G);
+G.shop = new Shop(G);
+G.base = new Base(G);
+
+// if pointer lock is ever lost without pausing (or lock() failed), a click re-locks
+canvas.addEventListener('click', () => {
+  if (G.running && !G.paused && !G.input.locked) G.input.lock();
+});
 
 function applyState() {
   G.hud.setMob(G.state.mobName, G.state.mobColor);
