@@ -104,7 +104,7 @@ G.menus = new Menus(G, {
   onNewGame(name, color) {
     G.state = defaultState(name, color);
     begin();
-    G.hud.banner(name, 'take the city — earn a $50,000,000 bounty', 'gold', 4);
+    G.hud.banner(name, 'take the city — earn a $10,000,000 bounty', 'gold', 4);
     G.hud.headline(`new crew calling themselves "${name}" spotted at the docks`);
   },
   onContinue() {

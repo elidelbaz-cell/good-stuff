@@ -62,11 +62,11 @@ cash · `K` +1 wanted star.
 - **8 weapons** — fists, pistol, tommy gun, shotgun, assault rifle, minigun,
   molotov, and RPG.
 - Every bounty tier unlocks a bigger squad and a tougher recruit class:
-  Thugs → Gunmen → Enforcers → Bruisers → Veterans → Bodyguards → **Hitmen →
-  Juggernauts**, up to a **16-man crew**.
+  Thugs ($0) → Gunmen ($500k) → Enforcers ($1.5M) → Bruisers ($3M) →
+  Veterans ($5M) → **Bodyguards ($8M)**, up to a **12-man crew**.
 - **Wanted stars 1–5** scale the heat: more cops, cop cars, then SWAT vans and
   shield squads.
-- **The final brawl** — hit **$50,000,000** and the whole NYPD converges on your
+- **The final brawl** — hit **$10,000,000** and the whole NYPD converges on your
   base. You and your full army fight out the front door through escalating waves
   of police, SWAT, and an armored riot truck. Win → *THE CITY IS YOURS*.
 

@@ -55,10 +55,10 @@ export const AMMO_PACKS = {
 };
 
 export const BOUNTY = {
-  cop: 100_000, swat: 150_000, copCar: 200_000, swatVan: 300_000,
-  stickup: 300_000, safe: 750_000, turf: 800_000, escort: 1_500_000, chase: 2_500_000,
-  drug: 350_000, arson: 500_000, hijack: 300_000, heliSteal: 1_000_000, shipSteal: 3_000_000, heliKill: 400_000,
-  GOAL: 50_000_000,
+  cop: 50_000, swat: 75_000, copCar: 100_000, swatVan: 150_000,
+  stickup: 150_000, safe: 300_000, turf: 400_000, escort: 750_000, chase: 1_000_000,
+  drug: 150_000, arson: 200_000, hijack: 150_000, heliSteal: 500_000, shipSteal: 1_500_000, heliKill: 150_000,
+  GOAL: 10_000_000,
 };
 export const CASH = {
   cop: 200, swat: 400, copCar: 600, stickup: 2000, safe: 6000,
@@ -67,14 +67,12 @@ export const CASH = {
 };
 
 export const TIERS = [
-  { bounty: 0,          squad: 2,  unlock: 'thug',       label: 'STREET THUGS' },
-  { bounty: 1_000_000,  squad: 4,  unlock: 'gunman',     label: 'GUNMEN' },
-  { bounty: 3_500_000,  squad: 6,  unlock: 'enforcer',   label: 'ENFORCERS' },
-  { bounty: 8_000_000,  squad: 8,  unlock: 'bruiser',    label: 'BRUISERS' },
-  { bounty: 15_000_000, squad: 10, unlock: 'veteran',    label: 'VETERANS' },
-  { bounty: 24_000_000, squad: 12, unlock: 'bodyguard',  label: 'BODYGUARDS' },
-  { bounty: 35_000_000, squad: 14, unlock: 'hitman',     label: 'HITMEN' },
-  { bounty: 45_000_000, squad: 16, unlock: 'juggernaut', label: 'JUGGERNAUTS' },
+  { bounty: 0,         squad: 2,  unlock: 'thug',      label: 'STREET THUGS' },
+  { bounty: 500_000,   squad: 4,  unlock: 'gunman',    label: 'GUNMEN' },
+  { bounty: 1_500_000, squad: 6,  unlock: 'enforcer',  label: 'ENFORCERS' },
+  { bounty: 3_000_000, squad: 8,  unlock: 'bruiser',   label: 'BRUISERS' },
+  { bounty: 5_000_000, squad: 10, unlock: 'veteran',   label: 'VETERANS' },
+  { bounty: 8_000_000, squad: 12, unlock: 'bodyguard', label: 'BODYGUARDS' },
 ];
 
 export const HENCH = {
@@ -84,8 +82,6 @@ export const HENCH = {
   bruiser:   { name: 'Bruiser',     cost: 4200,  hp: 230, weapon: 'shotgun', dmg: 38, rate: 0.9, range: 16,   speed: 5.8 },
   veteran:   { name: 'Veteran',     cost: 6500,  hp: 155, weapon: 'rifle',   dmg: 27, rate: 1.7, range: 55,   speed: 6.6 },
   bodyguard: { name: 'Bodyguard',   cost: 9000,  hp: 330, weapon: 'pistol',  dmg: 17, rate: 2.2, range: 34,   speed: 7.4 },
-  hitman:    { name: 'Hitman',      cost: 13000, hp: 190, weapon: 'rifle',   dmg: 34, rate: 2.4, range: 62,   speed: 7.0 },
-  juggernaut:{ name: 'Juggernaut',  cost: 22000, hp: 520, weapon: 'minigun', dmg: 11, rate: 13,  range: 42,   speed: 4.8 },
 };
 
 export const UPGRADES = {
