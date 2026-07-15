@@ -1,0 +1,15 @@
+{
+  "_comment": "Bookshelf trigger placements for SCENE 2. s = metres along the chase path where the shelf stands. mode: 'jump' (falls flat, low barrier) or 'slide' (lands leaning, gap underneath). offset = metres left(-)/right(+) of the path centreline where the shelf starts (which wall it falls from). The shelf begins toppling when the player is CONFIG.chase.shelfTriggerLead metres away.",
+  "triggers": [
+    { "s": 42,  "offset": -3.2, "mode": "jump"  },
+    { "s": 70,  "offset":  3.2, "mode": "slide" },
+    { "s": 97,  "offset": -3.2, "mode": "jump"  },
+    { "s": 122, "offset":  3.2, "mode": "slide" },
+    { "s": 148, "offset": -3.2, "mode": "jump"  },
+    { "s": 202, "offset": -3.4, "mode": "slide", "span": "lane", "_": "left lane of the branch" },
+    { "s": 212, "offset":  3.4, "mode": "jump",  "span": "lane", "_": "right lane of the branch" },
+    { "s": 224, "offset":  3.2, "mode": "slide" },
+    { "s": 248, "offset": -3.2, "mode": "jump"  },
+    { "s": 272, "offset":  3.2, "mode": "slide" }
+  ]
+}

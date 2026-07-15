@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>THE CALMING</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; padding: 0; background: #000; height: 100%; overflow: hidden; }
+  #app { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  #hud { position: fixed; inset: 0; pointer-events: none; font-family: Georgia, 'Times New Roman', serif; }
+
+  #dot {
+    position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px;
+    border-radius: 50%; background: rgba(255,255,255,0.35); opacity: 0; transition: opacity .4s;
+  }
+
+  #fade {
+    position: absolute; inset: 0; background: #000; opacity: 1;
+    transition: opacity .5s linear;
+  }
+  #fade.instant { transition: none; }
+
+  #vignette {
+    position: absolute; inset: 0; opacity: 0; transition: opacity .25s;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(80,0,0,0.55) 100%);
+  }
+
+  #title {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 28px; color: #ccc;
+    background: #000; pointer-events: auto; cursor: pointer; user-select: none;
+  }
+  #title h1 { font-weight: normal; letter-spacing: 0.55em; font-size: 28px; margin: 0; padding-left: 0.55em; }
+  #title p { color: #555; font-size: 13px; letter-spacing: 0.2em; margin: 0; }
+
+  #msg {
+    position: absolute; left: 0; right: 0; bottom: 18%; text-align: center;
+    color: rgba(255,255,255,0.75); font-size: 20px; letter-spacing: 0.35em;
+    opacity: 0; transition: opacity .6s;
+  }
+
+  #skip {
+    position: absolute; right: 28px; bottom: 24px; color: rgba(255,255,255,0.4);
+    font-size: 12px; letter-spacing: 0.15em; opacity: 0; transition: opacity .5s;
+  }
+  #skip .bar { display: inline-block; width: 90px; height: 3px; background: rgba(255,255,255,0.15);
+    vertical-align: middle; margin-left: 10px; }
+  #skip .bar i { display: block; height: 100%; width: 0%; background: rgba(255,255,255,0.7); }
+
+  #debug {
+    position: absolute; left: 10px; top: 10px; color: #0f0; font: 11px/1.5 monospace;
+    white-space: pre; display: none; text-shadow: 0 0 2px #000;
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/addons/"
+  }
+}
+</script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="hud">
+    <div id="fade" class="instant"></div>
+    <div id="vignette"></div>
+    <div id="dot"></div>
+    <div id="msg"></div>
+    <div id="skip">HOLD F TO SKIP <span class="bar"><i></i></span></div>
+    <div id="debug"></div>
+    <div id="title">
+      <h1>THE CALMING</h1>
+      <p>CLICK TO BEGIN &mdash; HEADPHONES ON</p>
+    </div>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

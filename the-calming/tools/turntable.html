@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>THE CALMING — FBX turntable QA</title>
+<style>
+  body { margin: 0; background: #111; color: #ccc; font: 13px monospace; overflow: hidden; }
+  #info { position: fixed; left: 12px; top: 10px; white-space: pre; text-shadow: 0 0 3px #000; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "../vendor/three.module.js", "three/addons/": "../vendor/addons/" } }
+</script>
+</head>
+<body>
+<div id="info"></div>
+<script type="module">
+// Turntable viewer — eyeball every Meshy FBX import BEFORE wiring it in.
+// Usage:  tools/turntable.html?asset=shadow   (any name from the manifest)
+// Renders the asset (real import if the manifest points at a file, else the
+// placeholder) rotating beside a 1.8 m human-height reference and a 1 m grid.
+// Check: size sane? standing upright? facing +Z? pivot at bottom-centre?
+// Textures connected (not grey)? Fix via the manifest's targetHeight /
+// upAxisFix / yaw fields — never by editing the model.
+import * as THREE from 'three';
+import { MANIFEST } from '../assets/manifest.js';
+import { importMeshyFBX } from '../src/engine/importer.js';
+import { Placeholders } from '../src/engine/placeholders.js';
+
+const name = new URLSearchParams(location.search).get('asset') || 'shadow';
+const def = MANIFEST.models[name];
+const info = document.getElementById('info');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x181a1e);
+const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.05, 100);
+camera.position.set(0, 1.7, 4.5);
+camera.lookAt(0, 1.0, 0);
+
+scene.add(new THREE.HemisphereLight(0xbfd0e0, 0x30281e, 1.2));
+const key = new THREE.DirectionalLight(0xffffff, 1.6);
+key.position.set(3, 5, 4);
+scene.add(key);
+scene.add(new THREE.GridHelper(10, 10, 0x444444, 0x2a2a2a));
+
+// 1.8 m human-height reference post
+const ref = new THREE.Mesh(
+  new THREE.BoxGeometry(0.3, 1.8, 0.3),
+  new THREE.MeshStandardMaterial({ color: 0x3a6a4a, transparent: true, opacity: 0.4 }));
+ref.position.set(-1.6, 0.9, 0);
+scene.add(ref);
+scene.add(new THREE.AxesHelper(1)); // red +X, green +Y, blue +Z
+
+let model = null;
+(async () => {
+  try {
+    model = def && def.file ? await importMeshyFBX(def) : Placeholders[name]();
+    scene.add(model);
+    const box = new THREE.Box3().setFromObject(model);
+    const s = box.getSize(new THREE.Vector3());
+    info.textContent =
+      `asset: ${name}   source: ${def && def.file ? def.file : 'PLACEHOLDER'}\n` +
+      `size:  ${s.x.toFixed(2)} × ${s.y.toFixed(2)} × ${s.z.toFixed(2)} m ` +
+      `(target height ${def ? def.targetHeight : '—'})\n` +
+      `green post = 1.8 m human · axes: red +X  green +Y  blue +Z\n` +
+      `fix problems in assets/manifest.js (targetHeight / upAxisFix / yaw)`;
+  } catch (e) {
+    info.textContent = `IMPORT FAILED for "${name}": ${e.message}`;
+    console.error(e);
+  }
+})();
+
+renderer.setAnimationLoop(() => {
+  if (model) model.rotation.y += 0.008;
+  renderer.render(scene, camera);
+});
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

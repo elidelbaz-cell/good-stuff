@@ -1,0 +1,15 @@
+{
+  "_comment": "SCENE 1 timing sheet. Retime any beat by editing 'at' (ms from cutscene start). Beat names are fixed — they map to handlers in src/game/cutscene.js. Total length = 'hardcut'.",
+  "beats": [
+    { "name": "deal",             "at": 0,     "_": "library after hours; fade in on the table + silhouette" },
+    { "name": "deal_envelope",    "at": 9000,  "_": "the envelope of cash slides across the table" },
+    { "name": "deal_hands",       "at": 18000, "_": "the player's hands take the envelope" },
+    { "name": "house",            "at": 32000, "_": "cut to the dark hallway; TV murmur + bad piano upstairs; slow walk forward" },
+    { "name": "act_black",        "at": 54000, "_": "CUT TO BLACK on the moment. never shown. audio only from here" },
+    { "name": "act_piano_stops",  "at": 55500, "_": "the upstairs piano stops mid-phrase" },
+    { "name": "act_chair",        "at": 57000, "_": "a chair falls over. then silence" },
+    { "name": "aftermath",        "at": 59500, "_": "fade back in. the house is silent. hold uncomfortably long" },
+    { "name": "turn",             "at": 78000, "_": "the head turns on its own. a shape at the end of the hall. it does not move" },
+    { "name": "hardcut",          "at": 94000, "_": "hard cut to the present-day library. control arrives seamlessly" }
+  ]
+}

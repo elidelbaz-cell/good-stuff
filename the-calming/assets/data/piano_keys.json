@@ -1,0 +1,15 @@
+{
+  "_comment": "The 7 playable keys. The piano FBX is one FUSED mesh — these are the invisible hitboxes + visible key-caps faked on top of it. All positions are LOCAL to the piano group (x = across the keyboard, y = up, z = toward the player). Nudge x/y/z per key to line up with the real model's key texture once it's in the scene. capSize/hitboxSize are metres.",
+  "capSize":    { "w": 0.100, "h": 0.022, "d": 0.160 },
+  "hitboxSize": { "w": 0.105, "h": 0.080, "d": 0.180 },
+  "capColor": "#e8e4d8",
+  "keys": [
+    { "key": 1, "x": -0.33, "y": 0.78, "z": 0.30 },
+    { "key": 2, "x": -0.22, "y": 0.78, "z": 0.30 },
+    { "key": 3, "x": -0.11, "y": 0.78, "z": 0.30 },
+    { "key": 4, "x":  0.00, "y": 0.78, "z": 0.30 },
+    { "key": 5, "x":  0.11, "y": 0.78, "z": 0.30 },
+    { "key": 6, "x":  0.22, "y": 0.78, "z": 0.30 },
+    { "key": 7, "x":  0.33, "y": 0.78, "z": 0.30 }
+  ]
+}
