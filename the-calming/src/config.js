@@ -27,6 +27,8 @@ export const CONFIG = {
   // --------------------------------------------------------------- ghost ----
   ghost: {
     startGap: 14.0,          // metres behind the player at chase start
+    spawnGraceSeconds: 3.5,  // it comes slowly at first — time to turn and run
+    graceFactor: 0.3,        // ghost speed multiplier during the grace window
     desiredGap: 12.0,        // the distance it "wants" to hold
     maxGap: 18.0,            // never falls further behind than this
     reopenRate: 0.55,        // m/s the gap re-opens while the player runs clean

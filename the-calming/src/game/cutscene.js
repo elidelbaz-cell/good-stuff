@@ -13,9 +13,10 @@ import { CONFIG } from '../config.js';
 import { makeHandMesh } from '../engine/placeholders.js';
 import { LAYOUT } from './chase.js';
 
-// The two cutscene sets live far from the library so they never intersect it.
+// The cutscene sets live far from the library so they never intersect it.
 const DEAL = new THREE.Vector3(400, 0, 0);
 const HOUSE = new THREE.Vector3(500, 0, 0);
+const UPSTAIRS = new THREE.Vector3(540, 0, 0);   // the uncle's piano room
 
 export class CutsceneScene {
   constructor(game) {
@@ -114,6 +115,32 @@ export class CutsceneScene {
     scene.add(house);
     this.props.house = house;
 
+    // ---- set: upstairs — the uncle at his piano, back turned -----------------
+    const up = new THREE.Group();
+    up.position.copy(UPSTAIRS);
+    const upFloor = new THREE.Mesh(new THREE.BoxGeometry(6, 0.1, 7),
+      new THREE.MeshStandardMaterial({ color: 0x241a12, roughness: 0.9 }));
+    upFloor.position.y = -0.05;
+    up.add(upFloor);
+    for (const [x, z, w, d] of [[0, -2.2, 6, 0.2], [-3, 0.5, 0.2, 7], [3, 0.5, 0.2, 7]]) {
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 2.7, d), dark);
+      wall.position.set(x, 1.35, z);
+      up.add(wall);
+    }
+    const upLamp = new THREE.PointLight(0xffd9a0, 9, 9, 1.8);
+    upLamp.position.set(0, 2.3, 0.6);
+    up.add(upLamp);
+    scene.add(up);
+    // his piano, keys toward +Z, and him at them — you only ever see his back
+    const unclePiano = await this.game.assets.getModel('piano');
+    unclePiano.position.copy(UPSTAIRS);
+    scene.add(unclePiano);
+    const uncle = await this.game.assets.getModel('human');
+    uncle.position.copy(UPSTAIRS).add(new THREE.Vector3(0, 0, 0.95));
+    uncle.rotation.y = Math.PI;   // facing the piano, away from the door
+    scene.add(uncle);
+    this.props.uncle = uncle;
+
     // the shape for "the turn" — OPEN DECISION: shadow or human/uncle?
     // Placeholder: the shadow. Swap 'shadow' → 'human' here when decided.
     const shape = await this.game.assets.getModel('shadow');
@@ -204,13 +231,24 @@ export class CutsceneScene {
         g.hud.blackout();
         setTimeout(() => g.hud.fadeIn(1.2), 350);
         P.handL.visible = P.handR.visible = false;
+        const walkEnd = this._beatAt('act_approach') || this._beatAt('act_black');
         this._walk(HOUSE.clone().add(new THREE.Vector3(0, 1.55, 5.5)),
                    HOUSE.clone().add(new THREE.Vector3(0, 1.55, -3.5)),
                    HOUSE.clone().add(new THREE.Vector3(0, 1.35, -8)),
-                   (this._beatAt('act_black') - this._beatAt('house')) / 1000);
+                   (walkEnd - this._beatAt('house')) / 1000);
         g.audio.startTvMurmur();
         // the uncle practising the melody badly upstairs — the same melody
         this.practice = g.audio.startPracticePiano(this.beatmap, 16);
+        break;
+      }
+      case 'act_approach': {
+        // upstairs. the doorway. he is at the piano, back turned, still
+        // playing. slow push in until the cut — the act itself is never shown.
+        const dur = (this._beatAt('act_black') - this._beatAt('act_approach')) / 1000;
+        this._walk(UPSTAIRS.clone().add(new THREE.Vector3(0, 1.52, 3.9)),
+                   UPSTAIRS.clone().add(new THREE.Vector3(0, 1.52, 2.7)),
+                   UPSTAIRS.clone().add(new THREE.Vector3(0, 1.05, 0.4)),
+                   dur);
         break;
       }
       case 'act_black': {
@@ -279,9 +317,12 @@ export class CutsceneScene {
     if (!this.running) return;
     this.tMs += dt * 1000;
 
-    // fire beats
+    // fire beats (a beat with only a caption is a valid beat — story text is
+    // authored in the timeline JSON, not in code)
     while (this.beatIdx < this.beats.length && this.beats[this.beatIdx].at <= this.tMs) {
-      this._enter(this.beats[this.beatIdx].name);
+      const beat = this.beats[this.beatIdx];
+      if (beat.caption) this.game.hud.showMessage(beat.caption, beat.caption_ms || 4500);
+      this._enter(beat.name);
       this.beatIdx++;
       if (!this.running) return;
     }

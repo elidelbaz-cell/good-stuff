@@ -149,6 +149,11 @@ export class ChaseScene {
       this.solids.push(aabb(30 + 4.4 * side, 2, -262, 2.4, 2, 0.25));
     }
 
+    // a warm beacon over the reading-room door — the light you're running for
+    const beacon = new THREE.PointLight(0xffc98a, 24, 22, 1.5);
+    beacon.position.set(30, 2.7, -259.5);
+    scene.add(beacon);
+
     // the doors that slam behind the player
     const doorMat = new THREE.MeshStandardMaterial({ color: 0x2c221a, roughness: 0.8 });
     const mkDoor = side => {

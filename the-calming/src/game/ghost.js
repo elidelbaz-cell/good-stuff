@@ -39,6 +39,7 @@ export class Ghost {
     this.s = playerS - G.startGap;
     this.lunging = false;
     this.frozen = false;
+    this.grace = G.spawnGraceSeconds;   // it starts walking, not hunting
     this.mesh.visible = true;
   }
 
@@ -62,6 +63,10 @@ export class Ghost {
     } else {
       // at/inside its set distance — relentless, but a clean sprint outruns it
       speed = Math.max(G.closeSpeed, playerSpeed - G.reopenRate);
+    }
+    if (this.grace > 0 && !this.lunging) {  // spawn grace: it comes slowly first
+      this.grace -= dt;
+      speed *= G.graceFactor;
     }
     this.s += speed * dt;
     if (this.frozen) this.s = Math.min(this.s, this.freezeS);
