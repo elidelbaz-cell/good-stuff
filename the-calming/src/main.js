@@ -192,24 +192,35 @@ class Game {
 const game = new Game();
 window.game = game;   // console access for tuning
 
-(async () => {
-  await game.build();
+// The title click is live from the first frame — it just waits for the build
+// if you click early. The subtitle shows LOADING… until everything is ready.
+const titleEl = document.getElementById('title');
+const subtitleEl = titleEl.querySelector('p');
+subtitleEl.textContent = 'LOADING…';
 
-  const begin = () => {
-    game.audio.init();
-    game.audio.resume();
-    game.hud.hideTitle();
-    game._lockPointer();
-
-    const scene = params.get('scene') || 'cutscene';
-    if (scene === 'chase') { game.hud.clearBlack(); game.startChase(); }
-    else if (scene === 'piano') { game.hud.clearBlack(); game.startPiano(); }
-    else game.startCutscene();
-
-    game.run();
-  };
-  document.getElementById('title').addEventListener('click', begin, { once: true });
-})().catch(err => {
+const ready = game.build().then(() => {
+  subtitleEl.textContent = 'CLICK TO BEGIN — HEADPHONES ON';
+}).catch(err => {
   console.error('[THE CALMING] boot failed', err);
-  document.getElementById('title').querySelector('p').textContent = 'BOOT FAILED — SEE CONSOLE';
+  subtitleEl.textContent = 'BOOT FAILED — SEE CONSOLE';
+  throw err;
+});
+
+let started = false;
+titleEl.addEventListener('click', async () => {
+  if (started) return;
+  started = true;
+  try { await ready; } catch (_) { started = false; return; }
+
+  game.audio.init();
+  game.audio.resume();
+  game.hud.hideTitle();
+  game._lockPointer();
+
+  const scene = params.get('scene') || 'cutscene';
+  if (scene === 'chase') { game.hud.clearBlack(); game.startChase(); }
+  else if (scene === 'piano') { game.hud.clearBlack(); game.startPiano(); }
+  else game.startCutscene();
+
+  game.run();
 });

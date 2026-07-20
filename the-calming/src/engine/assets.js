@@ -33,6 +33,9 @@ export class Assets {
   }
 
   async getJSON(key) {
+    // single-file builds (tools/build-single.mjs) inline all data — no fetch,
+    // so the game runs straight off file://
+    if (window.__INLINE_DATA && window.__INLINE_DATA[key]) return window.__INLINE_DATA[key];
     const url = MANIFEST.data[key];
     const res = await fetch(url);
     if (!res.ok) throw new Error(`[assets] failed to load data "${key}" from ${url}`);
