@@ -116,6 +116,10 @@ const TEX = {
   }),
   stone: pixTex(16, (g, p) => speckle(g, p, '#8b8f99', ['#9ba0ac', '#767a85', '#a6abb8', '#696d78'], 80)),
   leaf:  pixTex(16, (g, p) => speckle(g, p, '#3d8f36', ['#4caf3f', '#2f7a2a', '#57c24b', '#367f2e'], 110)),
+  leafA: pixTex(16, (g, p) => speckle(g, p, '#c9752b', ['#d9822b', '#b3611f', '#e0983d', '#a5541c'], 110)),
+  leafP: pixTex(16, (g, p) => speckle(g, p, '#2a5f46', ['#357a58', '#1f4a36', '#3d8a63', '#254f3b'], 110)),
+  cact:  pixTex(16, (g, p) => { speckle(g, p, '#3f8f4a', ['#4aa357', '#347a3e', '#57b264'], 60);
+    g.fillStyle = '#2c6b35'; for (let x = 2; x < p; x += 5) g.fillRect(x, 0, 1, p); }),
   bush:  pixTex(16, (g, p) => { speckle(g, p, '#3d8f36', ['#4caf3f', '#2f7a2a'], 60);
     g.fillStyle = '#e03131'; for (let i = 0; i < 7; i++) g.fillRect((Math.random() * p) | 0, (Math.random() * p) | 0, 2, 2); }),
   ore:   pixTex(16, (g, p) => { speckle(g, p, '#6e727d', ['#7d818c', '#5f636d'], 60);
@@ -132,13 +136,24 @@ const MAT = {
   rock:     new THREE.MeshLambertMaterial({ map: TEX.stone }),
   ore:      new THREE.MeshLambertMaterial({ map: TEX.ore }),
   bush:     new THREE.MeshLambertMaterial({ map: TEX.bush }),
+  leafA:    new THREE.MeshLambertMaterial({ map: TEX.leafA }),
+  leafP:    new THREE.MeshLambertMaterial({ map: TEX.leafP }),
+  cactus:   new THREE.MeshLambertMaterial({ map: TEX.cact }),
   blockWood:  new THREE.MeshLambertMaterial({ map: TEX.wood }),
   blockStone: new THREE.MeshLambertMaterial({ map: TEX.stone }),
 };
-const C_GRASS = new THREE.Color(0x4caf3f), C_FOREST = new THREE.Color(0x3d9432),
-      C_ROCK = new THREE.Color(0x8b8f99), C_SNOW = new THREE.Color(0xe8eef7),
-      C_SAND = new THREE.Color(0xd8c27a), C_DIRT = new THREE.Color(0x7a5230),
-      C_STONE_U = new THREE.Color(0x777b86);
+// biomes: 0 meadow 1 forest 2 rocky 3 snow 4 beach 5 desert 6 swamp
+//         7 tundra 8 autumn forest 9 ashlands
+const TOPC = [0x4caf3f, 0x3d9432, 0x8b8f99, 0xe8eef7, 0xd8c27a, 0xe3cf8e,
+              0x49703a, 0xa8bd8f, 0x9a8f3a, 0x43424e].map(c => new THREE.Color(c));
+const C_DIRT = new THREE.Color(0x7a5230), C_STONE_U = new THREE.Color(0x777b86),
+      C_SAND_U = new THREE.Color(0xc2a862), C_ASH_U = new THREE.Color(0x2e2d36);
+function underC(biome) {
+  if (biome === 2 || biome === 3) return C_STONE_U;
+  if (biome === 4 || biome === 5) return C_SAND_U;
+  if (biome === 9) return C_ASH_U;
+  return C_DIRT;
+}
 
 // ============================== WORLD GEN ==================================
 let seed = 1234;
@@ -161,29 +176,41 @@ const cellKey = (cx, cz) => cx + ',' + cz;
 
 function cellGen(cx, cz) {
   const base = n01(cx, cz, 22, 1), hills = n01(cx, cz, 7, 2),
-        ridge = n01(cx, cz, 13, 3), moist = n01(cx, cz, 19, 4), lakeN = n01(cx, cz, 16, 5);
+        ridge = n01(cx, cz, 13, 3), moist = n01(cx, cz, 19, 4),
+        lakeN = n01(cx, cz, 16, 5), temp = n01(cx, cz, 26, 6);
   let h = 1 + base * 6 + hills * hills * 7 * (0.35 + ridge);
   if (lakeN < 0.22) h -= (0.22 - lakeN) * 40;
   const r = Math.hypot(cx, cz);
   if (r < 14) h = lerp(3.2, Math.max(h, 1.2), clamp(r / 14, 0, 1) ** 1.5);
   h = Math.round(clamp(h, -4, 18));
 
-  let biome; // 0 meadow 1 forest 2 rocky 3 snow 4 sand
-  if (h <= 1) biome = 4;
-  else if (h >= 12) biome = 3;
-  else if (moist < 0.33) biome = 2;
-  else if (moist > 0.58) biome = 1;
-  else biome = 0;
+  let biome;
+  if (h <= 1) biome = 4;                                        // beach / shore
+  else if (h >= 12) biome = 3;                                  // snow peaks
+  else if (temp > 0.78 && moist < 0.3 && h >= 6) biome = 9;     // ashlands
+  else if (temp > 0.66 && moist < 0.42) biome = 5;              // desert
+  else if (h <= 3 && moist > 0.66) biome = 6;                   // swamp
+  else if (temp < 0.24) biome = 7;                              // tundra
+  else if (moist < 0.33) biome = 2;                             // rocky
+  else if (moist > 0.58) biome = temp > 0.62 ? 8 : 1;           // autumn / forest
+  else biome = 0;                                               // meadow
 
-  let obj = 0; // 1 tree 2 rock 3 ore 4 bush
+  let obj = 0, leafV = 0; // obj: 1 tree 2 rock 3 ore 4 bush 5 cactus
   if (h >= 1 && r > 4) {
     const oh = h2(cx * 3 + 7, cz * 3 - 5);
-    if (biome === 1 && oh < 0.15) obj = 1;
-    else if (biome === 0) { if (oh < 0.035) obj = 1; else if (oh < 0.07) obj = 4; }
-    else if (biome === 2) { if (oh < 0.045) obj = 2; else if (oh < 0.075) obj = 3; }
-    else if (biome === 3 && oh < 0.05) obj = 1;
+    switch (biome) {
+      case 0: if (oh < 0.035) obj = 1; else if (oh < 0.07) obj = 4; break;
+      case 1: if (oh < 0.15) obj = 1; break;
+      case 2: if (oh < 0.045) obj = 2; else if (oh < 0.075) obj = 3; break;
+      case 3: if (oh < 0.05) { obj = 1; leafV = 2; } break;
+      case 5: if (oh < 0.05) obj = 5; break;
+      case 6: if (oh < 0.06) obj = 1; else if (oh < 0.14) obj = 4; break;
+      case 7: if (oh < 0.03) { obj = 1; leafV = 2; } else if (oh < 0.06) obj = 2; break;
+      case 8: if (oh < 0.15) { obj = 1; leafV = 1; } else if (oh < 0.18) obj = 4; break;
+      case 9: if (oh < 0.09) obj = 3; else if (oh < 0.14) obj = 2; break;
+    }
   }
-  return { h, biome, obj };
+  return { h, biome, obj, leafV };
 }
 function cellH(cx, cz) {
   const ch = chunks.get(chunkKeyOf(cx, cz));
@@ -203,6 +230,7 @@ const geoTrunk = new THREE.BoxGeometry(0.9, 3.6, 0.9);
 const geoLeaf = new THREE.BoxGeometry(3.4, 3.0, 3.4);
 const geoRock = new THREE.BoxGeometry(1.6, 1.1, 1.6);
 const geoBush = new THREE.BoxGeometry(1.5, 1.0, 1.5);
+const geoCactus = new THREE.BoxGeometry(0.9, 2.6, 0.9);
 const geoBlock = new THREE.BoxGeometry(1, 1, 1);
 const tmpM = new THREE.Matrix4(), tmpC = new THREE.Color();
 
@@ -232,18 +260,16 @@ function buildChunk(kcx, kcz) {
     const i = z * CH + x, g = cells[i], cx = cx0 + x, cz = cz0 + z;
     const wx = cx * CELL + CELL / 2, wz = cz * CELL + CELL / 2, h = g.h;
     const shade = 0.88 + 0.24 * h2(cx * 7 + 1, cz * 7 + 3);
-    const topC = [C_GRASS, C_FOREST, C_ROCK, C_SNOW, C_SAND][g.biome];
     tmpM.makeTranslation(wx, h - 0.3, wz);
     tops.setMatrixAt(i, tmpM);
-    tops.setColorAt(i, tmpC.copy(topC).multiplyScalar(shade));
+    tops.setColorAt(i, tmpC.copy(TOPC[g.biome]).multiplyScalar(shade));
     // body extends to just below the lowest neighbour
     let minN = h;
     minN = Math.min(minN, cellH(cx + 1, cz), cellH(cx - 1, cz), cellH(cx, cz + 1), cellH(cx, cz - 1));
     const depth = Math.max(1, h - minN + 2);
     tmpM.makeScale(1, depth, 1); tmpM.setPosition(wx, h - 0.6 - depth / 2, wz);
     bodies.setMatrixAt(i, tmpM);
-    const underC = g.biome === 2 || g.biome === 3 ? C_STONE_U : C_DIRT;
-    bodies.setColorAt(i, tmpC.copy(underC).multiplyScalar(shade));
+    bodies.setColorAt(i, tmpC.copy(underC(g.biome)).multiplyScalar(shade));
     ch.cellIdx.push({ cx, cz });
   }
   tops.instanceMatrix.needsUpdate = true; bodies.instanceMatrix.needsUpdate = true;
@@ -262,9 +288,9 @@ function buildChunk(kcx, kcz) {
     if (!g.obj) continue;
     const cx = cx0 + x, cz = cz0 + z;
     if (diffs.rm[cellKey(cx, cz)]) continue;
-    objList.push({ type: g.obj, cx, cz, x: cx * CELL + CELL / 2, z: cz * CELL + CELL / 2, y: g.h });
+    objList.push({ type: g.obj, leafV: g.leafV, cx, cz, x: cx * CELL + CELL / 2, z: cz * CELL + CELL / 2, y: g.h });
   }
-  const byType = { 1: [], 2: [], 3: [], 4: [] };
+  const byType = { 1: [], 2: [], 3: [], 4: [], 5: [] };
   for (const o of objList) byType[o.type].push(o);
   ch.objs = objList;
   function instFor(list, geo, mat, place, kind) {
@@ -281,9 +307,17 @@ function buildChunk(kcx, kcz) {
     tmpM.makeTranslation(o.x, o.y + 1.8, o.z); im.setMatrixAt(i, tmpM);
     ch.solids.push({ min: V3(o.x - 0.45, o.y, o.z - 0.45), max: V3(o.x + 0.45, o.y + 3.6, o.z + 0.45) });
   }, 'tree');
-  instFor(byType[1], geoLeaf, MAT.leaf, (o, i, im) => {
-    tmpM.makeTranslation(o.x, o.y + 4.6, o.z); im.setMatrixAt(i, tmpM);
-  }, 'tree');
+  const leafGroups = [[], [], []];
+  for (const o of byType[1]) leafGroups[o.leafV || 0].push(o);
+  const leafMats = [MAT.leaf, MAT.leafA, MAT.leafP];
+  for (let lv = 0; lv < 3; lv++)
+    instFor(leafGroups[lv], geoLeaf, leafMats[lv], (o, i, im) => {
+      tmpM.makeTranslation(o.x, o.y + 4.6, o.z); im.setMatrixAt(i, tmpM);
+    }, 'tree');
+  instFor(byType[5], geoCactus, MAT.cactus, (o, i, im) => {
+    tmpM.makeTranslation(o.x, o.y + 1.3, o.z); im.setMatrixAt(i, tmpM);
+    ch.solids.push({ min: V3(o.x - 0.45, o.y, o.z - 0.45), max: V3(o.x + 0.45, o.y + 2.6, o.z + 0.45) });
+  }, 'cactus');
   instFor(byType[2], geoRock, MAT.rock, (o, i, im) => {
     tmpM.makeTranslation(o.x, o.y + 0.55, o.z); im.setMatrixAt(i, tmpM);
     ch.solids.push({ min: V3(o.x - 0.8, o.y, o.z - 0.8), max: V3(o.x + 0.8, o.y + 1.1, o.z + 0.8) });
@@ -620,7 +654,7 @@ function tickPickups(dt) {
       if (d < 0.9) {
         inv[p.type] += p.n; updRes(); sfx.pickup();
         scene.remove(p.m); pickups.splice(i, 1);
-        if (!flags.gotWood && p.type === 'wood') { flags.gotWood = 1; say('Wood! Open CRAFT and I\'ll show ye what we can forge.'); }
+        if (!flags.gotWood && p.type === 'wood') { flags.gotWood = 1; say('Wood! Check yer BAG, then BUILD walls or CRAFT me sharper.'); }
         if (!flags.gotIron && p.type === 'iron') { flags.gotIron = 1; say('Iron! Now we\'re talkin\'. A sharper me awaits in CRAFT.'); }
       }
     }
@@ -631,7 +665,8 @@ function tickPickups(dt) {
 const keys = {};
 let camYaw = 0.6, camPitch = 0.28, camDist = 7.6;
 let wantGrapple = false, lookDX = 0, lookDY = 0;
-let selSlot = 0, craftOpen = false;
+let panelOpen = null;         // null | 'inv' | 'craft' | 'build'
+let buildSel = null;          // selected build definition while placing
 const joy = { active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0 };
 const lookTouch = { id: -1, lx: 0, ly: 0 };
 let state = 'MENU'; // MENU | PLAY | DEAD
@@ -641,10 +676,12 @@ window.addEventListener('keydown', ev => {
   keys[ev.code] = true;
   if (ev.code === 'Space') { player.jumpBuf = JUMP_BUF; ev.preventDefault(); }
   if (ev.code === 'KeyE') wantGrapple = true;
-  if (ev.code === 'KeyC' && state === 'PLAY') toggleCraft();
-  if (ev.code === 'Digit1') selectSlot(0);
-  if (ev.code === 'Digit2') selectSlot(1);
-  if (ev.code === 'Digit3') selectSlot(2);
+  if (state !== 'PLAY') return;
+  if (ev.code === 'Digit1') setFist();
+  if (ev.code === 'KeyI' || ev.code === 'Digit2') togglePanel('inv');
+  if (ev.code === 'KeyC' || ev.code === 'Digit3') togglePanel('craft');
+  if (ev.code === 'KeyB' || ev.code === 'Digit4') togglePanel('build');
+  if (ev.code === 'Escape') { if (panelOpen) togglePanel(panelOpen); else if (buildSel) setFist(); }
 });
 window.addEventListener('keyup', ev => {
   keys[ev.code] = false;
@@ -661,7 +698,7 @@ canvas.addEventListener('mousedown', ev => {
   if (IS_TOUCH || state !== 'PLAY') return;
   if (document.pointerLockElement !== canvas) { requestLock(); dragLook = true; }
   if (ev.button === 0) startSwing(player);
-  if (ev.button === 2) tryPlace();
+  if (ev.button === 2) placeBuild();
 });
 window.addEventListener('mouseup', ev => { if (ev.buttons === 0) dragLook = false; });
 window.addEventListener('contextmenu', ev => ev.preventDefault());
@@ -672,8 +709,8 @@ window.addEventListener('mousemove', ev => {
 
 const joyBase = document.getElementById('joyBase'), joyKnob = document.getElementById('joyKnob');
 window.addEventListener('touchstart', ev => {
-  if (state !== 'PLAY' || craftOpen) return;
-  if (ev.target.closest && ev.target.closest('.tbtn, button, .overlay, .slot, #s_craft')) return;
+  if (state !== 'PLAY' || panelOpen) return;
+  if (ev.target.closest && ev.target.closest('.tbtn, button, .overlay, .slot, #s_craft, #s_inv, #s_build')) return;
   for (const t of ev.changedTouches) {
     if (t.clientX < window.innerWidth * 0.45 && joy.id === -1) {
       joy.id = t.identifier; joy.active = true; joy.ox = t.clientX; joy.oy = t.clientY; joy.x = joy.y = 0;
@@ -719,8 +756,8 @@ function bindBtn(id, down, up) {
 bindBtn('s_btnJump', () => { player.jumpBuf = JUMP_BUF; });
 bindBtn('s_btnAtk', () => startSwing(player));
 bindBtn('s_btnGrap', () => { wantGrapple = true; }, () => { wantGrapple = false; });
-bindBtn('s_btnPlace', () => tryPlace());
-bindBtn('s_btnCraft', () => toggleCraft());
+bindBtn('s_btnPlace', () => placeBuild());
+bindBtn('s_btnCraft', () => togglePanel('craft'));
 document.getElementById('fsBtn').addEventListener('touchend', ev => {
   ev.preventDefault();
   try {
@@ -731,18 +768,63 @@ document.getElementById('fsBtn').addEventListener('touchend', ev => {
   } catch (e) {}
 }, { passive: false });
 
-// hotbar
-const slots = [document.getElementById('s_slot0'), document.getElementById('s_slot1'), document.getElementById('s_slot2')];
-function selectSlot(i) {
-  selSlot = i;
-  slots.forEach((s, j) => s.classList.toggle('sel', j === i));
-  document.getElementById('s_btnPlace').classList.toggle('avail', i > 0);
-  ghost.visible = false;
+// hotbar: FIST | BAG | CRAFT | BUILD
+const hFist = document.getElementById('s_hFist'), hBuild = document.getElementById('s_hBuild');
+function setFist() {
+  buildSel = null;
+  ghostG.visible = false;
+  hFist.classList.add('sel'); hBuild.classList.remove('sel');
+  document.getElementById('s_btnPlace').classList.remove('avail');
+  if (panelOpen) togglePanel(panelOpen);
 }
-slots.forEach((s, i) => {
-  s.addEventListener('click', () => selectSlot(i));
-  s.addEventListener('touchstart', ev => { ev.preventDefault(); ev.stopPropagation(); selectSlot(i); }, { passive: false });
-});
+const PANELS = { inv: 's_inv', craft: 's_craft', build: 's_build' };
+function togglePanel(which) {
+  const wasOpen = panelOpen;
+  for (const k in PANELS) document.getElementById(PANELS[k]).style.display = 'none';
+  panelOpen = wasOpen === which ? null : which;
+  if (panelOpen) {
+    if (panelOpen === 'inv') renderInv();
+    if (panelOpen === 'craft') renderCraft();
+    if (panelOpen === 'build') renderBuilds();
+    document.getElementById(PANELS[panelOpen]).style.display = 'block';
+  }
+}
+function hookHot(id, fn) {
+  const el = document.getElementById(id);
+  el.addEventListener('click', fn);
+  el.addEventListener('touchstart', ev => { ev.preventDefault(); ev.stopPropagation(); fn(); }, { passive: false });
+}
+hookHot('s_hFist', () => setFist());
+hookHot('s_hInv', () => togglePanel('inv'));
+hookHot('s_hCraft', () => togglePanel('craft'));
+hookHot('s_hBuild', () => togglePanel('build'));
+
+// minecraft-style inventory
+const INV_ITEMS = [
+  ['wood', 0x9c6b3a, 'Wood'], ['stone', 0x8b8f99, 'Stone'],
+  ['iron', 0xdfe4ee, 'Iron'], ['berry', 0xe03131, 'Berries'],
+];
+function renderInv() {
+  const grid = document.getElementById('s_invGrid');
+  grid.innerHTML = '';
+  const cells = 18;
+  for (let i = 0; i < cells; i++) {
+    const c = document.createElement('div'); c.className = 'mcell';
+    const it = INV_ITEMS[i];
+    if (it && inv[it[0]] > 0) {
+      const ic = document.createElement('div'); ic.className = 'ic';
+      ic.style.background = '#' + it[1].toString(16).padStart(6, '0');
+      ic.title = it[2];
+      const ct = document.createElement('div'); ct.className = 'ct'; ct.textContent = inv[it[0]];
+      c.append(ic, ct);
+    }
+    grid.append(c);
+  }
+  document.getElementById('s_invGear').innerHTML =
+    `<b>CUTTY:</b> ${['Steel', 'Iron', 'Gold', 'Crystal'][tier]} blade (${TIER_DMG[tier]} dmg)<br>` +
+    `<b>Rope:</b> ${grappleRange()}m grapple &nbsp; <b>Armor:</b> ${armor ? 'iron (-40% dmg)' : 'none'}`;
+}
+document.getElementById('s_invClose').addEventListener('click', () => { if (panelOpen === 'inv') togglePanel('inv'); });
 
 // ============================== CRAFTING ===================================
 const RECIPES = [
@@ -753,7 +835,7 @@ const RECIPES = [
   { id: 'armor',   name: 'Iron Armor',    desc: '-40% damage taken',    cost: { iron: 8 },                    once: true, req: () => !armor,     do: () => { armor = true; } },
   { id: 'eat',     name: 'Scoff Berries', desc: '+30 HP',               cost: { berry: 2 },                               req: () => true,       do: () => { player.hp = Math.min(100, player.hp + 30); } },
 ];
-const elCraft = document.getElementById('s_craft'), elRecipes = document.getElementById('s_recipes');
+const elRecipes = document.getElementById('s_recipes');
 function costStr(c) { return Object.entries(c).map(([k, v]) => `${v} ${k}`).join(' + '); }
 function canAfford(c) { return Object.entries(c).every(([k, v]) => inv[k] >= v); }
 function renderCraft() {
@@ -775,12 +857,7 @@ function renderCraft() {
     row.append(info, btn); elRecipes.append(row);
   }
 }
-function toggleCraft() {
-  craftOpen = !craftOpen;
-  elCraft.style.display = craftOpen ? 'block' : 'none';
-  if (craftOpen) renderCraft();
-}
-document.getElementById('s_craftClose').addEventListener('click', () => { if (craftOpen) toggleCraft(); });
+document.getElementById('s_craftClose').addEventListener('click', () => { if (panelOpen === 'craft') togglePanel('craft'); });
 
 // ============================== COMBAT / MINING ============================
 const raycaster = new THREE.Raycaster();
@@ -814,6 +891,7 @@ function startSwing(att) {
       }
     }
     if (bestT) att.yaw = Math.atan2(bestT.pos.x - att.pos.x, bestT.pos.z - att.pos.z);
+    att.cuttyDart = !!bestT;      // CUTTY darts at foes; fists do the breaking
   }
   att.vel.x += Math.sin(att.yaw) * 5.5; att.vel.z += Math.cos(att.yaw) * 5.5;
   sfx.swing();
@@ -851,16 +929,17 @@ function mineImpact() {
       });
       return;
     }
-    if (u.kind === 'tree' || u.kind === 'rock' || u.kind === 'ore' || u.kind === 'bush') {
+    if (u.kind === 'tree' || u.kind === 'rock' || u.kind === 'ore' || u.kind === 'bush' || u.kind === 'cactus') {
       const o = u.list[h.instanceId];
-      const need = { tree: 4, rock: 3, ore: 5, bush: 1 }[u.kind];
-      const col = { tree: 0x9c6b3a, rock: 0x8b8f99, ore: 0xdfe4ee, bush: 0x4caf3f }[u.kind];
+      const need = { tree: 4, rock: 3, ore: 5, bush: 1, cactus: 3 }[u.kind];
+      const col = { tree: 0x9c6b3a, rock: 0x8b8f99, ore: 0xdfe4ee, bush: 0x4caf3f, cactus: 0x3f8f4a }[u.kind];
       hitMinable('o:' + cellKey(o.cx, o.cz), need, h.point, col, () => {
         diffs.rm[cellKey(o.cx, o.cz)] = 1;
-        if (u.kind === 'tree') { inv.wood += 5; if (!flags.chopped) { flags.chopped = 1; say('TIMBER! Five logs. Chop more — wood builds bridges.'); } }
+        if (u.kind === 'tree') { inv.wood += 5; if (!flags.chopped) { flags.chopped = 1; say('TIMBER! Five logs. Open BUILD to raise walls an\' towers.'); } }
         if (u.kind === 'rock') inv.stone += 3;
         if (u.kind === 'ore') inv.iron += 3;
         if (u.kind === 'bush') inv.berry += 3;
+        if (u.kind === 'cactus') { inv.wood += 2; inv.berry += 1; }
         updRes(); rebuildAround(o.cx, o.cz); sfx.breakB();
       });
       return;
@@ -904,45 +983,117 @@ function applyHit(att, vic, nx, nz) {
 }
 
 // ============================== BUILDING ===================================
-const ghost = new THREE.Mesh(new THREE.BoxGeometry(1.02, 1.02, 1.02),
-  new THREE.MeshBasicMaterial({ color: 0x7dff6a, wireframe: true }));
-ghost.visible = false; scene.add(ghost);
-let ghostPos = null, ghostT = 0;
-function updateGhost(dt) {
+// prefab builds: block offsets [x, y, z] with +z = away from the player,
+// rotated to the nearest camera quadrant at placement time
+const wallBlocks = [];
+for (let y = 0; y < 3; y++) for (let x = -1; x <= 1; x++) wallBlocks.push([x, y, 0]);
+const platBlocks = [];
+for (let z = 0; z < 3; z++) for (let x = -1; x <= 1; x++) platBlocks.push([x, 0, z]);
+const fortBlocks = [];
+for (let y = 0; y < 3; y++) for (let x = -1; x <= 1; x++) for (let z = -1; z <= 1; z++) {
+  if (x === 0 && z === 0) continue;                 // hollow middle
+  if (x === 0 && z === -1 && y < 2) continue;       // door facing the player
+  fortBlocks.push([x, y, z]);
+}
+const BUILDS = [
+  { id: 'wb', name: 'Wood Block', desc: 'one solid block', cost: { wood: 1 }, type: 1, blocks: [[0, 0, 0]] },
+  { id: 'sb', name: 'Stone Block', desc: 'one solid block', cost: { stone: 1 }, type: 2, blocks: [[0, 0, 0]] },
+  { id: 'st', name: 'Stairs', desc: 'climbable steps', cost: { wood: 5 }, type: 1, blocks: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 2], [0, 2, 2]] },
+  { id: 'ww', name: 'Wood Wall', desc: '3×3 barrier', cost: { wood: 5 }, type: 1, blocks: wallBlocks },
+  { id: 'sw', name: 'Stone Wall', desc: '3×3 barrier', cost: { stone: 5 }, type: 2, blocks: wallBlocks },
+  { id: 'pf', name: 'Platform', desc: '3×3 floor / bridge piece', cost: { wood: 6 }, type: 1, blocks: platBlocks },
+  { id: 'pl', name: 'Pillar', desc: '4-high column, grapple it!', cost: { stone: 4 }, type: 2, blocks: [[0, 0, 0], [0, 1, 0], [0, 2, 0], [0, 3, 0]] },
+  { id: 'ft', name: 'Fort Tower', desc: '3×3 walls with a door', cost: { stone: 18 }, type: 2, blocks: fortBlocks },
+];
+function renderBuilds() {
+  const el = document.getElementById('s_builds');
+  el.innerHTML = '';
+  for (const b of BUILDS) {
+    const row = document.createElement('div'); row.className = 'recipe';
+    const info = document.createElement('div'); info.className = 'info';
+    info.innerHTML = `<b>${b.name}</b> — ${b.desc}<br><span class="cost">${costStr(b.cost)}</span>`;
+    const btn = document.createElement('button'); btn.className = 'rbtn';
+    const sel = buildSel && buildSel.id === b.id;
+    btn.textContent = sel ? 'SELECTED' : 'SELECT';
+    if (sel) btn.classList.add('done');
+    btn.disabled = !canAfford(b.cost);
+    btn.addEventListener('click', () => selectBuild(b));
+    row.append(info, btn); el.append(row);
+  }
+}
+function selectBuild(def) {
+  buildSel = def;
+  if (panelOpen === 'build') togglePanel('build');
+  hFist.classList.remove('sel'); hBuild.classList.add('sel');
+  document.getElementById('s_btnPlace').classList.add('avail');
+  if (!flags.buildHint) { flags.buildHint = 1; say(IS_TOUCH ? 'Aim, then hit PLACE to raise it. FIST cancels.' : 'Aim, then RIGHT CLICK to raise it. Press 1 to cancel.'); }
+}
+document.getElementById('s_buildClose').addEventListener('click', () => { if (panelOpen === 'build') togglePanel('build'); });
+
+const ghostGeo = new THREE.BoxGeometry(1.02, 1.02, 1.02);
+const ghostMat = new THREE.MeshBasicMaterial({ color: 0x7dff6a, wireframe: true });
+const ghostG = new THREE.Group(); ghostG.visible = false; scene.add(ghostG);
+let ghostAnchor = null, ghostT = 0;
+function rotOff(q, b) {
+  const [x, y, z] = b;
+  switch (q & 3) {
+    case 0: return [x, y, z];
+    case 1: return [z, y, -x];
+    case 2: return [-x, y, -z];
+    default: return [-z, y, x];
+  }
+}
+function updateBuildGhost(dt) {
   ghostT -= dt;
   if (ghostT > 0) return;
   ghostT = 0.08;
-  ghost.visible = false; ghostPos = null;
-  if (state !== 'PLAY' || selSlot === 0) return;
+  ghostG.visible = false; ghostAnchor = null;
+  if (state !== 'PLAY' || !buildSel) return;
   const h = castCenter(PLACE_RANGE);
   if (!h || !h.face) return;
   const p = h.point.clone().addScaledVector(h.face.normal, 0.5);
-  const bx = Math.floor(p.x), by = Math.floor(p.y), bz = Math.floor(p.z);
-  if (by + 0.5 < groundH(bx + 0.5, bz + 0.5)) return;               // inside terrain
-  if (diffs.pb[bx + ',' + by + ',' + bz]) return;
-  // don't place inside anyone
-  for (const e of [player, ...hunters]) {
-    if (Math.abs(e.pos.x - (bx + 0.5)) < e.hw + 0.5 &&
-        Math.abs(e.pos.z - (bz + 0.5)) < e.hw + 0.5 &&
-        Math.abs(e.pos.y - (by + 0.5)) < e.hh + 0.5) return;
-  }
-  ghostPos = { bx, by, bz };
-  ghost.position.set(bx + 0.5, by + 0.5, bz + 0.5);
-  ghost.visible = true;
+  const ax = Math.floor(p.x), ay = Math.floor(p.y), az = Math.floor(p.z);
+  let q = Math.round(camYaw / (Math.PI / 2)); q = ((q % 4) + 4) % 4;
+  while (ghostG.children.length < buildSel.blocks.length) ghostG.add(new THREE.Mesh(ghostGeo, ghostMat));
+  buildSel.blocks.forEach((b, i) => {
+    const [rx, ry, rz] = rotOff(q, b);
+    const m = ghostG.children[i];
+    m.visible = true;
+    m.position.set(ax + rx + 0.5, ay + ry + 0.5, az + rz + 0.5);
+  });
+  for (let i = buildSel.blocks.length; i < ghostG.children.length; i++) ghostG.children[i].visible = false;
+  ghostMat.color.setHex(canAfford(buildSel.cost) ? 0x7dff6a : 0xff5a5a);
+  ghostAnchor = { ax, ay, az, q };
+  ghostG.visible = true;
 }
-function tryPlace() {
-  if (state !== 'PLAY' || selSlot === 0 || !ghostPos) return;
-  const type = selSlot === 1 ? 1 : 2, res = selSlot === 1 ? 'wood' : 'stone';
-  if (inv[res] < 1) { say(`Out of ${res}! ${res === 'wood' ? 'Chop trees' : 'Mine stone'} first.`); return; }
-  inv[res] -= 1; updRes();
-  const { bx, by, bz } = ghostPos;
-  diffs.pb[bx + ',' + by + ',' + bz] = type;
-  const kx = Math.floor(Math.floor(bx / CELL) / CH), kz = Math.floor(Math.floor(bz / CELL) / CH);
-  const ch = chunks.get(kx + ',' + kz);
-  if (ch) addBlockMesh(ch, bx, by, bz, type);
-  sfx.place();
-  ghostPos = null; ghost.visible = false;
-  if (!flags.built) { flags.built = 1; say('A fine start! Stack blocks to towers — hunters climb poorly.'); }
+function placeBuild() {
+  if (state !== 'PLAY' || !buildSel || !ghostAnchor) return;
+  if (!canAfford(buildSel.cost)) { say('Not enough materials! Punch more trees an\' rocks.'); return; }
+  const { ax, ay, az, q } = ghostAnchor;
+  let placed = 0;
+  for (const b of buildSel.blocks) {
+    const [rx, ry, rz] = rotOff(q, b);
+    const bx = ax + rx, by = ay + ry, bz = az + rz, bk = bx + ',' + by + ',' + bz;
+    if (diffs.pb[bk]) continue;
+    if (by + 0.5 < groundH(bx + 0.5, bz + 0.5)) continue;
+    let blocked = false;
+    for (const e of [player, ...hunters]) {
+      if (Math.abs(e.pos.x - (bx + 0.5)) < e.hw + 0.5 &&
+          Math.abs(e.pos.z - (bz + 0.5)) < e.hw + 0.5 &&
+          Math.abs(e.pos.y - (by + 0.5)) < e.hh + 0.5) { blocked = true; break; }
+    }
+    if (blocked) continue;
+    diffs.pb[bk] = buildSel.type;
+    const kx = Math.floor(Math.floor(bx / CELL) / CH), kz = Math.floor(Math.floor(bz / CELL) / CH);
+    const ch = chunks.get(kx + ',' + kz);
+    if (ch) addBlockMesh(ch, bx, by, bz, buildSel.type);
+    placed++;
+  }
+  if (!placed) { say('No room to build there.'); return; }
+  for (const [k, v] of Object.entries(buildSel.cost)) inv[k] -= v;
+  updRes(); sfx.place();
+  ghostAnchor = null; ghostG.visible = false;
+  if (!flags.built) { flags.built = 1; say('A fine start! Hunters climb poorly — build high.'); }
 }
 
 // ============================== PHYSICS ====================================
@@ -1232,7 +1383,7 @@ function updateVisual(e, dt, time) {
 let hunterNear = 1e9;
 function updateCutty(dt, time) {
   const g = cutty.group;
-  if (player.swingT >= 0) {
+  if (player.swingT >= 0 && player.cuttyDart) {
     // dart in an arc in front of the player
     const t = clamp(player.swingT / SWING_DUR, 0, 1);
     const a = lerp(1.2, -1.2, t * t * (3 - 2 * t));
@@ -1387,7 +1538,7 @@ function startRun(fresh) {
     player.hp = 100;
   }
   player.invuln = 1.5;
-  selectSlot(0); updRes();
+  setFist(); updRes();
   if (!IS_TOUCH) requestLock();
   const c = ac(); if (c && c.state === 'suspended') c.resume();
   if (!flags.intro) {
@@ -1463,13 +1614,18 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && sta
 window.__SURV_DEBUG = {
   state: () => state,
   inv: () => ({ ...inv }),
+  give: (k, n) => { inv[k] += n; updRes(); },
   runT: () => runT,
   aim: () => { const h = castCenter(MINE_RANGE); return h ? h.object.userData.kind : null; },
   mine: () => mineImpact(),
   blocks: () => Object.keys(diffs.pb).length,
+  setBuild: (id) => { const b = BUILDS.find(x => x.id === id); if (b) selectBuild(b); return !!b; },
+  place: () => placeBuild(),
   hunters: () => hunters.length,
   spawnHunter: () => spawnHunter(),
   chunks: () => chunks.size,
+  tp: (x, z) => { player.pos.set(x, groundH(x, z) + 3, z); player.vel.set(0, 0, 0); },
+  biome: () => cellGen(Math.floor(player.pos.x / CELL), Math.floor(player.pos.z / CELL)).biome,
 };
 
 let last = performance.now(), acc = 0, timeSec = 0;
@@ -1493,7 +1649,7 @@ function frame(now) {
     }
     if (acc >= STEP) acc = 0;
     updateCamera(dt);
-    updateGhost(dt);
+    updateBuildGhost(dt);
     tickPing(dt);
     saveT -= dt;
     if (saveT <= 0) { saveT = 8; saveGame(); }

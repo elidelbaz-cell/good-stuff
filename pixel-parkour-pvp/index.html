@@ -120,9 +120,26 @@
   .slot { width:52px; height:52px; background:rgba(10,14,30,.82); border:3px solid #000; box-shadow:0 0 0 3px #3b4a7a;
     display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:10px; color:#cfe0ff;
     text-shadow:1px 1px 0 #000; letter-spacing:0; border-radius:4px; }
-  .slot .ic { width:20px; height:20px; border:2px solid #000; margin-bottom:3px; }
+  .slot .em { font-size:19px; line-height:1; margin-bottom:3px; }
   .slot.sel { box-shadow:0 0 0 3px #ffd23e; }
-  .slot .n { position:absolute; margin-top:30px; margin-left:28px; color:#ffd23e; font-size:11px; }
+
+  /* minecraft-style inventory */
+  .mcpanel { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:9; display:none;
+    pointer-events:auto; background:#c6c6c6; border:3px solid #000;
+    box-shadow:inset 3px 3px 0 #ffffff, inset -3px -3px 0 #555a5e, 6px 6px 0 rgba(0,0,0,.5);
+    padding:16px; max-width:94vw; max-height:84vh; overflow:auto; }
+  .mcpanel h3 { color:#3f3f3f; font-size:16px; letter-spacing:2px; margin-bottom:10px; }
+  .mcgrid { display:grid; grid-template-columns:repeat(9, 38px); gap:2px; }
+  @media (max-width:520px) { .mcgrid { grid-template-columns:repeat(6, 38px); } }
+  .mcell { width:38px; height:38px; background:#8b8b8b; position:relative;
+    box-shadow:inset 2px 2px 0 #373737, inset -2px -2px 0 #ffffff;
+    display:flex; align-items:center; justify-content:center; }
+  .mcell .ic { width:22px; height:22px; border:2px solid #000; }
+  .mcell .ct { position:absolute; right:2px; bottom:0; font-size:12px; font-weight:bold; color:#fff;
+    text-shadow:1px 1px 0 #3f3f3f; }
+  .mcgear { margin-top:12px; font-size:12px; color:#3f3f3f; line-height:1.8; }
+  .mcgear b { color:#1f1f1f; }
+  .mcpanel .rbtn { margin-top:12px; width:100%; }
   body.touch #s_hotbar { left:calc(max(14px, env(safe-area-inset-left)) + 8px); transform:none;
     bottom:calc(max(14px, env(safe-area-inset-bottom)) + 66px); }
 
@@ -235,9 +252,10 @@
   <div id="s_msgbox" class="px panel"><b>CUTTY ▸</b> <span id="s_msgtxt"></span></div>
 
   <div id="s_hotbar">
-    <div class="slot" data-slot="0" id="s_slot0"><div class="ic" style="background:#dfe6f0"></div>SWORD</div>
-    <div class="slot" data-slot="1" id="s_slot1"><div class="ic" style="background:#9c6b3a"></div>WOOD</div>
-    <div class="slot" data-slot="2" id="s_slot2"><div class="ic" style="background:#8b8f99"></div>STONE</div>
+    <div class="slot sel" id="s_hFist"><div class="em">✊</div>FIST</div>
+    <div class="slot" id="s_hInv"><div class="em">🎒</div>BAG</div>
+    <div class="slot" id="s_hCraft"><div class="em">⚒️</div>CRAFT</div>
+    <div class="slot" id="s_hBuild"><div class="em">🧱</div>BUILD</div>
   </div>
 
   <div id="s_btnJump"  class="tbtn touch-only">JUMP</div>
@@ -253,6 +271,19 @@
   <button id="s_craftClose" class="rbtn">CLOSE (C)</button>
 </div>
 
+<div id="s_inv" class="mcpanel">
+  <h3>INVENTORY</h3>
+  <div id="s_invGrid" class="mcgrid"></div>
+  <div id="s_invGear" class="mcgear"></div>
+  <button id="s_invClose" class="rbtn">CLOSE (I)</button>
+</div>
+
+<div id="s_build" class="panel" style="position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:9; width:min(440px,92vw); padding:14px; display:none; pointer-events:auto; max-height:82vh; overflow-y:auto;">
+  <h3 class="px" style="color:#ffd23e; text-shadow:2px 2px 0 #000; font-size:18px; margin-bottom:10px; letter-spacing:2px;">BUILD</h3>
+  <div id="s_builds"></div>
+  <button id="s_buildClose" class="rbtn">CLOSE (B)</button>
+</div>
+
 <div id="s_menu" class="overlay">
   <div class="title px">MANHUNT</div>
   <div class="sub px">SURVIVE THE ENDLESS WILDS · THEY ARE COMING FOR YOU</div>
@@ -260,12 +291,12 @@
   <button id="s_newBtn" class="bigbtn alt">NEW WORLD</button>
   <div class="ctrls" id="s_ctrlsDesk">
     <b>WASD</b> move · <b>SPACE</b> jump ×3 · <b>E</b> hold to grapple (trees!)<br>
-    <b>LEFT CLICK</b> slash / chop / mine · <b>RIGHT CLICK</b> place block · <b>C</b> craft · <b>1/2/3</b> hotbar<br>
+    <b>CLICK</b> punch: chop, mine, fight · <b>I</b> inventory · <b>C</b> craft · <b>B</b> build menu → <b>RIGHT CLICK</b> places<br>
     Your flying cutlass CUTTY senses hunters. Survive as long as you can.
   </div>
   <div class="ctrls" id="s_ctrlsTouch" style="display:none">
     <b>LEFT</b> joystick · <b>RIGHT</b> drag to look · <b>JUMP</b> ×3 · <b>GRAPPLE</b> trees<br>
-    <b>SLASH</b> chops, mines &amp; fights · pick WOOD/STONE then <b>PLACE</b> to build · <b>CRAFT</b> for upgrades<br>
+    <b>SLASH</b> punches: chop, mine &amp; fight · <b>BAG</b> loot · <b>BUILD</b> structures then <b>PLACE</b> · <b>CRAFT</b> upgrades<br>
     Your flying cutlass CUTTY senses hunters. Survive as long as you can.
   </div>
 </div>

@@ -28,18 +28,22 @@ exact moveset — spawn from the wilds and track you down, more of them and fast
 as time passes, bolder at night. Death resets the clock but **keeps your world,
 buildings, loot, and upgrades**; your best time is recorded.
 
-- **Endless world** — chunked, procedurally generated terrain streams around you:
-  meadows, forests, rocky highlands with iron ore, snowy peaks, lakes. Seed +
+- **Endless world, 10 biomes** — chunked, procedurally generated terrain streams
+  around you: meadows, forests, autumn woods, swamps, deserts (cacti!), tundra,
+  rocky highlands with iron ore, ashlands, snowy peaks, and beaches/lakes. Seed +
   every change you make (mining, chopping, building) persist in `localStorage`.
-- **CUTTY, the flying sword** — hovers beside you, does the actual slashing when
-  you attack, glows red when hunters are near, calls out their distance and
+- **CUTTY, the flying sword** — hovers beside you, darts out to do the slashing
+  when you fight, glows red when hunters are near, calls out their distance and
   bearing, and coaches you through the game.
-- **Mining & gathering** — swing at terrain for stone, trees for wood, ore rocks
-  for iron, bushes for berries. Hunters drop loot too.
-- **Building** — select wood/stone in the hotbar and place 1 m blocks (green
-  ghost cube shows placement). Bridges, walls, towers — blocks are solid,
-  climbable, grappleable, and persist.
-- **Crafting** — blade upgrades (Iron → Gold → Crystal, more damage), longer
+- **Fists & the hotbar** — your fists break everything: terrain for stone, trees
+  for wood, ore rocks for iron, bushes for berries, cacti for both. The hotbar is
+  FIST · BAG · CRAFT · BUILD.
+- **BAG** — a Minecraft-style inventory grid with your materials and gear stats.
+- **BUILD** — spend materials on structures placed with a ghost preview, rotated
+  to face your camera: single blocks, stairs, 3×3 walls, platforms, pillars, and
+  a fort tower with a doorway. Everything placed is solid, climbable,
+  grappleable, and persists.
+- **CRAFT** — blade upgrades (Iron → Gold → Crystal, more damage), longer
   grapple rope, iron armor, and eating berries to heal.
 - **Movement** — same parkour kit as the arena: triple jump, wall slide/jump,
   coyote time, and a crosshair-aimed grapple that works on trees, cliffs, and
@@ -53,10 +57,12 @@ buildings, loot, and upgrades**; your best time is recorded.
 | Move / look | WASD + mouse | joystick + drag right side |
 | Jump ×3 / wall jump | Space | JUMP |
 | Grapple (hold) | E | GRAPPLE |
-| Slash / chop / mine | Left Click | SLASH |
-| Place block | Right Click | PLACE (with wood/stone selected) |
-| Hotbar | 1 / 2 / 3 | tap slots |
-| Crafting | C | CRAFT |
+| Punch: chop / mine / fight | Left Click | SLASH |
+| Inventory | I or 2 | BAG slot |
+| Crafting | C or 3 | CRAFT slot |
+| Build menu | B or 4 | BUILD slot |
+| Place selected build | Right Click | PLACE |
+| Cancel build / close panels | 1 / Esc | FIST slot |
 
 ## Arena PVP
 
