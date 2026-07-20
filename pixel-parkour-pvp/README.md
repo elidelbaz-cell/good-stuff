@@ -1,72 +1,88 @@
-# CUTLASS — 3D Pixel Parkour PvP
+# CUTLASS — 3D Pixel Pirate Adventure
 
-A 3D pixel-art parkour arena brawler that runs in any browser — desktop **and mobile**.
-You're a pirate on a chain of floating sky isles. Triple-jump, wall-jump, and grapple
-your way around the arena and KO the other five pirates with your cutlass. Most KOs in
-3 minutes wins. Fall in the drink and it's a KO on you.
+A 3D pixel-art browser game for desktop **and mobile**, with two modes behind one
+title screen:
 
-The "PvP" opponents are AI pirates that use the exact same moveset you do — they chase,
-parkour across gaps, grapple to orbs, and duel at sword range. (Real online multiplayer
-would need a game server; the combat/movement code is shared by player and bots, so a
-networked version could reuse all of it.)
+1. **SURVIVAL: MANHUNT** — freeroam survival in endless procedural wilds. Mine,
+   craft, build, swing through trees with your grapple, and don't get caught by
+   the hunters. Your flying cutlass **CUTTY** is your companion. Worlds save.
+2. **ARENA PVP** — a 3-minute cutlass deathmatch on floating sky isles against
+   five AI pirates. Most KOs wins.
+
+No build step, no assets, no network: Three.js is vendored, all textures are
+generated at runtime on 16×16 canvases (nearest-filtered), and all sound is
+WebAudio-synthesized. The pixel look comes from rendering at ~¼ resolution and
+upscaling with `image-rendering: pixelated` — which is also why it runs well on
+phones.
 
 ## Play it
 
-No build step. Either:
+Open `index.html` in a browser, or serve the folder (`npx serve .` /
+`python3 -m http.server`) — serving is required on some browsers for `file://`
+texture loading.
 
-- Open `index.html` directly in a browser, or
-- Serve the folder (`npx serve .` or `python3 -m http.server`) and open it —
-  required on some browsers for textures when using `file://`.
+## Survival: Manhunt
 
-Everything is self-contained: Three.js is vendored in `vendor/`, all textures are
-generated at runtime on tiny canvases (16×16, nearest-filtered), and all sound is
-synthesized with WebAudio. No assets, no network.
+Your score is **how long you survive**. Hunters — red-eyed pirates with your
+exact moveset — spawn from the wilds and track you down, more of them and faster
+as time passes, bolder at night. Death resets the clock but **keeps your world,
+buildings, loot, and upgrades**; your best time is recorded.
 
-## Controls
+- **Endless world** — chunked, procedurally generated terrain streams around you:
+  meadows, forests, rocky highlands with iron ore, snowy peaks, lakes. Seed +
+  every change you make (mining, chopping, building) persist in `localStorage`.
+- **CUTTY, the flying sword** — hovers beside you, does the actual slashing when
+  you attack, glows red when hunters are near, calls out their distance and
+  bearing, and coaches you through the game.
+- **Mining & gathering** — swing at terrain for stone, trees for wood, ore rocks
+  for iron, bushes for berries. Hunters drop loot too.
+- **Building** — select wood/stone in the hotbar and place 1 m blocks (green
+  ghost cube shows placement). Bridges, walls, towers — blocks are solid,
+  climbable, grappleable, and persist.
+- **Crafting** — blade upgrades (Iron → Gold → Crystal, more damage), longer
+  grapple rope, iron armor, and eating berries to heal.
+- **Movement** — same parkour kit as the arena: triple jump, wall slide/jump,
+  coyote time, and a crosshair-aimed grapple that works on trees, cliffs, and
+  your own buildings. Water is swimmable and slows you.
+- **Day/night** — ~2.5 min days; hunters spawn faster in the dark.
+
+### Controls (survival)
 
 | Action | Desktop | Mobile |
 |---|---|---|
-| Move | WASD / arrows | left-side virtual joystick |
-| Look | mouse (pointer lock, or drag) | drag right side of screen |
-| Jump (×3: ground + 2 air) | Space | JUMP button |
-| Wall jump | Space while sliding on a wall | JUMP while on a wall |
-| Grapple (hold to reel) | hold Right Click or E | hold GRAPPLE button |
-| Slash cutlass | Left Click | SLASH button |
-| Fullscreen | — | ⛶ button |
+| Move / look | WASD + mouse | joystick + drag right side |
+| Jump ×3 / wall jump | Space | JUMP |
+| Grapple (hold) | E | GRAPPLE |
+| Slash / chop / mine | Left Click | SLASH |
+| Place block | Right Click | PLACE (with wood/stone selected) |
+| Hotbar | 1 / 2 / 3 | tap slots |
+| Crafting | C | CRAFT |
 
-The crosshair turns **gold** when your grapple can reach what you're aiming at.
-Grapple orbs (floating gold cubes) are easy anchor points, but any surface in range works.
+## Arena PVP
 
-## Mechanics
-
-- **Triple jump** — one ground jump plus two air jumps (pips under your health bar
-  show what's left). Coyote time and jump buffering included.
-- **Wall slide / wall jump** — touch a wall while airborne to slide slowly; jumping
-  kicks you off the wall and doesn't spend an air jump.
-- **Grapple** — raycast from your crosshair, up to 48 units. Hold to reel in and swing;
-  release for a little upward pop. Auto-releases when you arrive.
-- **Cutlass** — the only weapon. Frontal arc hit with a lunge, knockback, and a short
-  cooldown. Aim assist snaps your swing to nearby foes (welcome on touch screens).
-- **Health** — 100 HP, regenerates after 5 s out of combat. KO'd pirates respawn in
-  ~2.5 s with brief spawn protection.
-
-## Tech notes
-
-- **Pixel-art look**: the scene renders at ~1/2 to 1/4 resolution into the canvas and is
-  upscaled with `image-rendering: pixelated`; all textures are nearest-filtered. This is
-  also why it runs well on phones.
-- **Physics**: custom fixed-timestep (60 Hz) AABB physics — axis-by-axis sweep against
-  the world's box colliders; the rope is a pull force + length constraint that kills
-  outward radial velocity (so you swing).
-- **Bots**: a small state machine sharing the player's movement code — target selection,
-  gap-jumping probes, stuck detection, orb grappling, void recovery, and human-ish
-  reaction delay before attacking.
+Same movement kit, five AI pirates, 3-minute matches, KO scoring, kill feed,
+respawns; fall in the sea and it's a KO. See in-game menu for controls.
 
 ## Files
 
 ```
 pixel-parkour-pvp/
-├── index.html          HUD, touch controls, menus, CSS
-├── game.js             engine + gameplay (rendering, physics, combat, AI, input, audio)
+├── index.html          mode select + both HUDs + CSS
+├── game.js             arena mode (window.__ARENA)
+├── survival.js         survival mode (window.__SURVIVAL): chunked world gen,
+│                       mining/building diffs + saves, hunters, CUTTY, crafting
 └── vendor/three.min.js Three.js r147 (vendored, UMD build)
 ```
+
+### Tech notes
+
+- Custom fixed-timestep AABB physics; terrain is a heightfield (2×2 m cells,
+  auto step-up ≤1 m, cliffs act as wall-jumpable walls); trees/rocks/blocks are
+  AABB solids per chunk.
+- Terrain and flora render as per-chunk `InstancedMesh`es (2 draw calls for
+  ground + a few for objects per chunk). r147 doesn't compute instance-aware
+  bounds, so each chunk mesh gets a hand-set bounding sphere for culling.
+- The world save is just `{seed, diffs}` — diffs are mined-cell deltas, removed
+  objects, and placed blocks, so saves stay tiny no matter how far you roam.
+- `window.__SURV_DEBUG` exposes a small hook surface (inv, aim, mine, spawn
+  hunter…) used by the headless Playwright tests.

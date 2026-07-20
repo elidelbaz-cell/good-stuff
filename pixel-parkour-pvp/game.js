@@ -1,5 +1,6 @@
-/* CUTLASS — 3D pixel-art parkour PvP. Three.js r147. */
-(() => {
+/* CUTLASS — 3D pixel-art parkour PvP arena mode. Three.js r147.
+   Exposed as window.__ARENA(); invoked by the mode-select screen. */
+window.__ARENA = () => {
 'use strict';
 
 // ============================== CONSTANTS ==================================
@@ -565,18 +566,27 @@ function ko(vic, att) {
 
 // ============================== GRAPPLE ====================================
 const raycaster = new THREE.Raycaster();
+// first crosshair hit past the player (skips geometry between camera & player)
+function castCenter(range) {
+  raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+  raycaster.far = range + camDist + 4;
+  const dir = raycaster.ray.direction;
+  const pd = (player.pos.x - camera.position.x) * dir.x +
+             (player.pos.y + 0.7 - camera.position.y) * dir.y +
+             (player.pos.z - camera.position.z) * dir.z;
+  const hits = raycaster.intersectObjects(raycastables, false);
+  for (const h of hits) {
+    if (h.distance < pd - 1.4) continue;
+    if (h.point.distanceTo(player.pos) > range) return null;
+    return h;
+  }
+  return null;
+}
 function tryGrapple(e) {
   // player: aim through crosshair; bots: pick an orb
   if (e.isPlayer) {
-    raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-    raycaster.far = GRAPPLE_RANGE + camDist;
-    const hits = raycaster.intersectObjects(raycastables, false);
-    for (const h of hits) {
-      if (h.distance < camDist * 0.8) continue;             // behind/next to player
-      if (h.point.distanceTo(e.pos) > GRAPPLE_RANGE) break;
-      attachGrapple(e, h.point);
-      return true;
-    }
+    const h = castCenter(GRAPPLE_RANGE);
+    if (h) { attachGrapple(e, h.point); return true; }
     return false;
   }
   return false;
@@ -986,16 +996,7 @@ let crossT = 0;
 function updateCross(dt) {
   crossT -= dt; if (crossT > 0) return; crossT = 0.12;
   if (player.dead || state !== 'PLAY') { elCross.classList.remove('hot'); return; }
-  raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-  raycaster.far = GRAPPLE_RANGE + camDist;
-  const hits = raycaster.intersectObjects(raycastables, false);
-  let hot = false;
-  for (const h of hits) {
-    if (h.distance < camDist * 0.8) continue;
-    hot = h.point.distanceTo(player.pos) <= GRAPPLE_RANGE;
-    break;
-  }
-  elCross.classList.toggle('hot', hot);
+  elCross.classList.toggle('hot', !!castCenter(GRAPPLE_RANGE));
 }
 
 // ============================== GAME FLOW ==================================
@@ -1134,4 +1135,4 @@ function updateEntityMenuIdle(e, dt) {
   updateEntity(e, dt);
 }
 requestAnimationFrame(frame);
-})();
+};

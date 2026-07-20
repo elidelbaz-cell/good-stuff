@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>CUTLASS — Pixel Parkour PvP</title>
+<title>CUTLASS — Pixel Parkour</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { width:100%; height:100%; overflow:hidden; background:#0b1020; touch-action:none;
@@ -17,11 +17,56 @@
   .px { color:#fff; text-shadow:2px 2px 0 #000; letter-spacing:1px; }
   .panel { background:rgba(10,14,30,.82); border:3px solid #000; box-shadow:0 0 0 3px #3b4a7a, 6px 6px 0 rgba(0,0,0,.5); }
 
-  #hud { position:fixed; inset:0; pointer-events:none; z-index:5;
+  /* ---------- shared ---------- */
+  #cross { position:fixed; left:50%; top:50%; width:14px; height:14px; transform:translate(-50%,-50%);
+    display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:5; }
+  #cross::before, #cross::after { content:""; position:absolute; background:#fff; box-shadow:1px 1px 0 #000; }
+  #cross::before { width:14px; height:3px; } #cross::after { width:3px; height:14px; }
+  #cross.hot::before, #cross.hot::after { background:#ffd23e; }
+  #vig { position:fixed; inset:0; pointer-events:none; z-index:4; opacity:0;
+    background:radial-gradient(ellipse at center, transparent 55%, rgba(255,30,30,.55) 100%); }
+  #joyBase { position:fixed; width:120px; height:120px; border:3px solid rgba(255,255,255,.55); border-radius:50%;
+    background:rgba(255,255,255,.08); display:none; pointer-events:none; z-index:6; }
+  #joyKnob { position:fixed; width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,.75);
+    border:3px solid #000; display:none; pointer-events:none; z-index:6; }
+  #fsBtn { position:fixed; pointer-events:auto; left:max(12px, env(safe-area-inset-left)); bottom:max(12px, env(safe-area-inset-bottom));
+    width:44px; height:44px; font-size:20px; background:#3b4a7a; border-radius:8px; z-index:6; display:none; }
+  body.touch .touch-only { display:flex; }
+
+  .tbtn { position:fixed; pointer-events:auto; border:3px solid #000; box-shadow:0 0 0 3px #3b4a7a, inset 0 -6px 0 rgba(0,0,0,.3);
+    color:#fff; text-shadow:2px 2px 0 #000; display:flex; align-items:center; justify-content:center;
+    border-radius:14px; font-size:13px; letter-spacing:1px; z-index:6; }
+  .tbtn:active, .tbtn.on { filter:brightness(1.35); transform:scale(.94); }
+  .touch-only { display:none; }
+
+  .overlay { position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:14px; background:rgba(6,9,20,.55); text-align:center; padding:20px; }
+  .title { font-size:clamp(34px, 9vw, 64px); color:#ffd23e; text-shadow:4px 4px 0 #000, 8px 8px 0 rgba(0,0,0,.35); }
+  .sub { font-size:clamp(13px, 3vw, 17px); color:#cfe0ff; text-shadow:2px 2px 0 #000; }
+  .bigbtn { pointer-events:auto; cursor:pointer; font-family:inherit; font-weight:bold; font-size:clamp(18px,4.5vw,24px);
+    color:#fff; text-shadow:2px 2px 0 #000; letter-spacing:2px; background:#2fa84f; border:4px solid #000;
+    box-shadow:0 0 0 3px #3b4a7a, 0 8px 0 #1c6330; padding:14px 44px; border-radius:6px; }
+  .bigbtn:active { transform:translateY(6px); box-shadow:0 0 0 3px #3b4a7a, 0 2px 0 #1c6330; }
+  .bigbtn.alt { background:#8a5fc9; box-shadow:0 0 0 3px #3b4a7a, 0 8px 0 #55367e; }
+  .bigbtn.alt:active { box-shadow:0 0 0 3px #3b4a7a, 0 2px 0 #55367e; }
+  .bigbtn.warn { background:#b3382e; box-shadow:0 0 0 3px #3b4a7a, 0 8px 0 #6e1f18; }
+  .bigbtn.warn:active { box-shadow:0 0 0 3px #3b4a7a, 0 2px 0 #6e1f18; }
+  .ctrls { font-size:clamp(11px, 2.6vw, 14px); color:#9fb4e8; text-shadow:1px 1px 0 #000; line-height:1.8; }
+  .ctrls b { color:#ffd23e; }
+
+  /* ---------- mode select ---------- */
+  #modeSel .modebtns { display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
+  #modeSel .modebtn { pointer-events:auto; cursor:pointer; width:min(280px, 42vw); min-width:220px; padding:18px 14px;
+    background:rgba(10,14,30,.85); border:4px solid #000; box-shadow:0 0 0 3px #3b4a7a, 8px 8px 0 rgba(0,0,0,.5);
+    border-radius:6px; }
+  #modeSel .modebtn:active { transform:translateY(4px); }
+  #modeSel .modebtn h2 { font-size:clamp(18px,4vw,24px); color:#ffd23e; text-shadow:3px 3px 0 #000; margin-bottom:8px; letter-spacing:1px; }
+  #modeSel .modebtn p { font-size:clamp(11px,2.6vw,14px); color:#cfe0ff; text-shadow:1px 1px 0 #000; line-height:1.6; }
+
+  /* ---------- arena hud ---------- */
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:5; display:none;
     padding:max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
             max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
-
-  /* health + jumps */
   #stats { position:absolute; left:max(12px, env(safe-area-inset-left)); top:max(10px, env(safe-area-inset-top)); }
   #hpwrap { width:180px; height:20px; background:#1a0d0d; border:3px solid #000; box-shadow:0 0 0 2px #3b4a7a; }
   #hpfill { height:100%; width:100%; background:linear-gradient(#7dff6a,#33cc33); transition:width .12s steps(6); }
@@ -29,71 +74,110 @@
   #pips { margin-top:6px; display:flex; gap:5px; }
   .pip { width:14px; height:14px; background:#ffd23e; border:3px solid #000; box-shadow:0 0 0 2px #3b4a7a; }
   .pip.off { background:#333a4d; }
-
   #timer { position:absolute; top:max(10px, env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
     font-size:22px; padding:2px 12px; }
   #timer.hurry { color:#ff5a5a; animation:blink .5s steps(2) infinite; }
   @keyframes blink { 50% { opacity:.4; } }
-
   #board { position:absolute; right:max(12px, env(safe-area-inset-right)); top:max(10px, env(safe-area-inset-top));
     font-size:13px; padding:6px 10px; min-width:130px; }
   #board .row { display:flex; justify-content:space-between; gap:12px; line-height:1.5; }
   #board .me { color:#ffd23e; }
-
   #feed { position:absolute; right:max(12px, env(safe-area-inset-right)); top:150px; font-size:12px; text-align:right; }
   #feed div { margin-bottom:3px; opacity:.95; }
-
-  #cross { position:absolute; left:50%; top:50%; width:14px; height:14px; transform:translate(-50%,-50%);
-    display:flex; align-items:center; justify-content:center; }
-  #cross::before, #cross::after { content:""; position:absolute; background:#fff; box-shadow:1px 1px 0 #000; }
-  #cross::before { width:14px; height:3px; } #cross::after { width:3px; height:14px; }
-  #cross.hot::before, #cross.hot::after { background:#ffd23e; }
-
   #msg { position:absolute; left:50%; top:34%; transform:translate(-50%,-50%); font-size:26px; text-align:center;
     color:#ffd23e; display:none; }
-
-  #vig { position:fixed; inset:0; pointer-events:none; z-index:4; opacity:0;
-    background:radial-gradient(ellipse at center, transparent 55%, rgba(255,30,30,.55) 100%); }
-
-  /* touch controls */
-  .tbtn { position:absolute; pointer-events:auto; border:3px solid #000; box-shadow:0 0 0 3px #3b4a7a, inset 0 -6px 0 rgba(0,0,0,.3);
-    color:#fff; text-shadow:2px 2px 0 #000; display:flex; align-items:center; justify-content:center;
-    border-radius:14px; font-size:13px; letter-spacing:1px; }
-  .tbtn:active, .tbtn.on { filter:brightness(1.35); transform:scale(.94); }
   #btnAtk  { right:calc(max(14px, env(safe-area-inset-right)) + 8px);  bottom:calc(max(14px, env(safe-area-inset-bottom)) + 96px); width:88px; height:88px; background:#b3382e; font-size:15px; }
   #btnJump { right:calc(max(14px, env(safe-area-inset-right)) + 104px); bottom:calc(max(14px, env(safe-area-inset-bottom)) + 18px); width:80px; height:80px; background:#2e7db3; }
   #btnGrap { right:calc(max(14px, env(safe-area-inset-right)) + 8px);  bottom:calc(max(14px, env(safe-area-inset-bottom)) + 18px); width:66px; height:66px; background:#8a5fc9; font-size:11px; }
-  #joyBase { position:absolute; width:120px; height:120px; border:3px solid rgba(255,255,255,.55); border-radius:50%;
-    background:rgba(255,255,255,.08); display:none; pointer-events:none; }
-  #joyKnob { position:absolute; width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,.75);
-    border:3px solid #000; display:none; pointer-events:none; }
-  .touch-only { display:none; }
-  body.touch .touch-only { display:flex; }
 
-  /* overlays */
-  .overlay { position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center;
-    justify-content:center; gap:14px; background:rgba(6,9,20,.55); text-align:center;
-    padding:20px; }
-  .title { font-size:clamp(34px, 9vw, 64px); color:#ffd23e; text-shadow:4px 4px 0 #000, 8px 8px 0 rgba(0,0,0,.35); }
-  .sub { font-size:clamp(13px, 3vw, 17px); color:#cfe0ff; text-shadow:2px 2px 0 #000; }
-  .bigbtn { pointer-events:auto; cursor:pointer; font-family:inherit; font-weight:bold; font-size:clamp(18px,4.5vw,24px);
-    color:#fff; text-shadow:2px 2px 0 #000; letter-spacing:2px; background:#2fa84f; border:4px solid #000;
-    box-shadow:0 0 0 3px #3b4a7a, 0 8px 0 #1c6330; padding:14px 44px; border-radius:6px; }
-  .bigbtn:active { transform:translateY(6px); box-shadow:0 0 0 3px #3b4a7a, 0 2px 0 #1c6330; }
-  .ctrls { font-size:clamp(11px, 2.6vw, 14px); color:#9fb4e8; text-shadow:1px 1px 0 #000; line-height:1.8; }
-  .ctrls b { color:#ffd23e; }
   #over { display:none; }
   #overList { font-size:clamp(14px,3.4vw,18px); line-height:1.9; color:#fff; text-shadow:2px 2px 0 #000; }
   #resume { display:none; cursor:pointer; }
 
-  #fsBtn { position:absolute; pointer-events:auto; left:max(12px, env(safe-area-inset-left)); bottom:max(12px, env(safe-area-inset-bottom));
-    width:44px; height:44px; font-size:20px; background:#3b4a7a; border-radius:8px; z-index:6; }
+  /* ---------- survival hud ---------- */
+  #shud { position:fixed; inset:0; pointer-events:none; z-index:5; display:none; }
+  #s_stats { position:absolute; left:max(12px, env(safe-area-inset-left)); top:max(10px, env(safe-area-inset-top)); }
+  #s_hpwrap { width:180px; height:20px; background:#1a0d0d; border:3px solid #000; box-shadow:0 0 0 2px #3b4a7a; }
+  #s_hpfill { height:100%; width:100%; background:linear-gradient(#7dff6a,#33cc33); transition:width .12s steps(6); }
+  #s_hpfill.low { background:linear-gradient(#ff8a6a,#e03131); }
+  #s_pips { margin-top:6px; display:flex; gap:5px; }
+  #s_res { margin-top:8px; display:flex; flex-direction:column; gap:4px; font-size:13px; }
+  #s_res .r { display:flex; align-items:center; gap:6px; color:#fff; text-shadow:2px 2px 0 #000; }
+  #s_res .sq { width:13px; height:13px; border:2px solid #000; box-shadow:0 0 0 2px #3b4a7a; }
+  #s_timer { position:absolute; top:max(10px, env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
+    font-size:clamp(15px,3.4vw,21px); padding:3px 14px; text-align:center; }
+  #s_timer small { display:block; font-size:11px; color:#9fb4e8; }
+  #s_timer.night { color:#aebfff; }
+  #s_warn { position:absolute; top:78px; left:50%; transform:translateX(-50%); font-size:14px; color:#ff5a5a; display:none; }
+
+  #s_msgbox { position:absolute; left:50%; bottom:calc(max(14px, env(safe-area-inset-bottom)) + 118px); transform:translateX(-50%);
+    max-width:min(560px, 86vw); font-size:clamp(12px,2.9vw,15px); padding:8px 14px; display:none; text-align:left; line-height:1.5; }
+  #s_msgbox b { color:#ffd23e; }
+  body.touch #s_msgbox { bottom:auto; top:110px; }
+
+  #s_hotbar { position:absolute; left:50%; bottom:max(12px, env(safe-area-inset-bottom)); transform:translateX(-50%);
+    display:flex; gap:8px; pointer-events:auto; }
+  .slot { width:52px; height:52px; background:rgba(10,14,30,.82); border:3px solid #000; box-shadow:0 0 0 3px #3b4a7a;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:10px; color:#cfe0ff;
+    text-shadow:1px 1px 0 #000; letter-spacing:0; border-radius:4px; }
+  .slot .ic { width:20px; height:20px; border:2px solid #000; margin-bottom:3px; }
+  .slot.sel { box-shadow:0 0 0 3px #ffd23e; }
+  .slot .n { position:absolute; margin-top:30px; margin-left:28px; color:#ffd23e; font-size:11px; }
+  body.touch #s_hotbar { left:calc(max(14px, env(safe-area-inset-left)) + 8px); transform:none;
+    bottom:calc(max(14px, env(safe-area-inset-bottom)) + 66px); }
+
+  #s_btnAtk   { right:calc(max(14px, env(safe-area-inset-right)) + 8px);   bottom:calc(max(14px, env(safe-area-inset-bottom)) + 96px); width:88px; height:88px; background:#b3382e; font-size:15px; }
+  #s_btnJump  { right:calc(max(14px, env(safe-area-inset-right)) + 104px); bottom:calc(max(14px, env(safe-area-inset-bottom)) + 18px); width:80px; height:80px; background:#2e7db3; }
+  #s_btnGrap  { right:calc(max(14px, env(safe-area-inset-right)) + 8px);   bottom:calc(max(14px, env(safe-area-inset-bottom)) + 18px); width:66px; height:66px; background:#8a5fc9; font-size:11px; }
+  #s_btnPlace { right:calc(max(14px, env(safe-area-inset-right)) + 104px); bottom:calc(max(14px, env(safe-area-inset-bottom)) + 116px); width:68px; height:68px; background:#2fa84f; font-size:12px; display:none !important; }
+  body.touch #s_btnPlace.avail { display:flex !important; }
+  #s_btnCraft { right:calc(max(14px, env(safe-area-inset-right)) + 8px);   bottom:calc(max(14px, env(safe-area-inset-bottom)) + 196px); width:60px; height:44px; background:#3b4a7a; font-size:11px; }
+
+  #s_craft { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:9; width:min(420px, 92vw);
+    padding:14px; display:none; pointer-events:auto; max-height:82vh; overflow-y:auto; }
+  #s_craft h3 { color:#ffd23e; text-shadow:2px 2px 0 #000; font-size:18px; margin-bottom:10px; letter-spacing:2px; }
+  .recipe { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 6px;
+    border-bottom:2px solid #26304f; }
+  .recipe .info { text-align:left; font-size:12px; color:#cfe0ff; text-shadow:1px 1px 0 #000; line-height:1.5; }
+  .recipe .info b { color:#fff; font-size:13px; }
+  .recipe .cost { color:#9fb4e8; }
+  .rbtn { pointer-events:auto; cursor:pointer; font-family:inherit; font-weight:bold; font-size:13px; color:#fff;
+    text-shadow:1px 1px 0 #000; background:#2fa84f; border:3px solid #000; box-shadow:0 4px 0 #1c6330;
+    padding:8px 14px; border-radius:4px; letter-spacing:1px; white-space:nowrap; }
+  .rbtn:active { transform:translateY(3px); box-shadow:0 1px 0 #1c6330; }
+  .rbtn:disabled { background:#333a4d; box-shadow:0 4px 0 #20242f; color:#7a8399; cursor:default; }
+  .rbtn.done { background:#3b4a7a; box-shadow:0 4px 0 #232c49; }
+  #s_craftClose { margin-top:10px; width:100%; }
+
+  #s_menu { display:none; }
+  #s_death { display:none; }
+  #s_death .big { font-size:clamp(30px,8vw,54px); color:#ff5a5a; text-shadow:4px 4px 0 #000; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="vig"></div>
+<div id="cross" style="display:none"></div>
+<div id="joyBase"></div><div id="joyKnob"></div>
+<div id="fsBtn" class="tbtn touch-only px">⛶</div>
 
+<!-- ============ MODE SELECT ============ -->
+<div id="modeSel" class="overlay">
+  <div class="title px">CUTLASS</div>
+  <div class="sub px">A 3D PIXEL PIRATE ADVENTURE</div>
+  <div class="modebtns">
+    <div class="modebtn" id="modeSurv">
+      <h2>⚔ SURVIVAL: MANHUNT</h2>
+      <p>Endless procedural wilds. Mine, craft, build, swing through trees — and don't get caught by the hunters. Your world saves.</p>
+    </div>
+    <div class="modebtn" id="modeArena">
+      <h2>☠ ARENA PVP</h2>
+      <p>3-minute cutlass deathmatch on the sky isles vs 5 pirates. Most KOs wins.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ARENA HUD ============ -->
 <div id="hud">
   <div id="stats">
     <div id="hpwrap"><div id="hpfill"></div></div>
@@ -102,17 +186,13 @@
   <div id="timer" class="px panel">3:00</div>
   <div id="board" class="px panel"></div>
   <div id="feed" class="px"></div>
-  <div id="cross"></div>
   <div id="msg" class="px"></div>
-
-  <div id="joyBase"></div><div id="joyKnob"></div>
   <div id="btnJump" class="tbtn touch-only">JUMP</div>
   <div id="btnGrap" class="tbtn touch-only">GRAPPLE</div>
   <div id="btnAtk"  class="tbtn touch-only">SLASH</div>
-  <div id="fsBtn" class="tbtn touch-only px">⛶</div>
 </div>
 
-<div id="menu" class="overlay">
+<div id="menu" class="overlay" style="display:none">
   <div class="title px">CUTLASS</div>
   <div class="sub px">3D PIXEL PARKOUR PVP · SKY ISLES ARENA</div>
   <button id="startBtn" class="bigbtn">SET SAIL</button>
@@ -138,7 +218,85 @@
   <div class="sub px" style="font-size:22px">PAUSED — CLICK TO RESUME</div>
 </div>
 
+<!-- ============ SURVIVAL HUD ============ -->
+<div id="shud">
+  <div id="s_stats">
+    <div id="s_hpwrap"><div id="s_hpfill"></div></div>
+    <div id="s_pips"><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+    <div id="s_res">
+      <div class="r"><span class="sq" style="background:#9c6b3a"></span><span id="s_rWood">0</span></div>
+      <div class="r"><span class="sq" style="background:#8b8f99"></span><span id="s_rStone">0</span></div>
+      <div class="r"><span class="sq" style="background:#d8dfeb"></span><span id="s_rIron">0</span></div>
+      <div class="r"><span class="sq" style="background:#e03131"></span><span id="s_rBerry">0</span></div>
+    </div>
+  </div>
+  <div id="s_timer" class="px panel">0:00<small id="s_best">BEST 0:00</small></div>
+  <div id="s_warn" class="px panel">⚠ HUNTER NEARBY</div>
+  <div id="s_msgbox" class="px panel"><b>CUTTY ▸</b> <span id="s_msgtxt"></span></div>
+
+  <div id="s_hotbar">
+    <div class="slot" data-slot="0" id="s_slot0"><div class="ic" style="background:#dfe6f0"></div>SWORD</div>
+    <div class="slot" data-slot="1" id="s_slot1"><div class="ic" style="background:#9c6b3a"></div>WOOD</div>
+    <div class="slot" data-slot="2" id="s_slot2"><div class="ic" style="background:#8b8f99"></div>STONE</div>
+  </div>
+
+  <div id="s_btnJump"  class="tbtn touch-only">JUMP</div>
+  <div id="s_btnGrap"  class="tbtn touch-only">GRAPPLE</div>
+  <div id="s_btnAtk"   class="tbtn touch-only">SLASH</div>
+  <div id="s_btnPlace" class="tbtn touch-only">PLACE</div>
+  <div id="s_btnCraft" class="tbtn touch-only">CRAFT</div>
+</div>
+
+<div id="s_craft" class="panel">
+  <h3 class="px">CRAFTING</h3>
+  <div id="s_recipes"></div>
+  <button id="s_craftClose" class="rbtn">CLOSE (C)</button>
+</div>
+
+<div id="s_menu" class="overlay">
+  <div class="title px">MANHUNT</div>
+  <div class="sub px">SURVIVE THE ENDLESS WILDS · THEY ARE COMING FOR YOU</div>
+  <button id="s_continueBtn" class="bigbtn" style="display:none">CONTINUE WORLD</button>
+  <button id="s_newBtn" class="bigbtn alt">NEW WORLD</button>
+  <div class="ctrls" id="s_ctrlsDesk">
+    <b>WASD</b> move · <b>SPACE</b> jump ×3 · <b>E</b> hold to grapple (trees!)<br>
+    <b>LEFT CLICK</b> slash / chop / mine · <b>RIGHT CLICK</b> place block · <b>C</b> craft · <b>1/2/3</b> hotbar<br>
+    Your flying cutlass CUTTY senses hunters. Survive as long as you can.
+  </div>
+  <div class="ctrls" id="s_ctrlsTouch" style="display:none">
+    <b>LEFT</b> joystick · <b>RIGHT</b> drag to look · <b>JUMP</b> ×3 · <b>GRAPPLE</b> trees<br>
+    <b>SLASH</b> chops, mines &amp; fights · pick WOOD/STONE then <b>PLACE</b> to build · <b>CRAFT</b> for upgrades<br>
+    Your flying cutlass CUTTY senses hunters. Survive as long as you can.
+  </div>
+</div>
+
+<div id="s_death" class="overlay">
+  <div class="big px">HUNTED DOWN</div>
+  <div id="s_deathInfo" class="panel px" style="padding:12px 26px; font-size:clamp(14px,3.4vw,18px); line-height:1.9"></div>
+  <button id="s_respawnBtn" class="bigbtn">RESPAWN · WORLD KEPT</button>
+</div>
+
 <script src="vendor/three.min.js"></script>
 <script src="game.js"></script>
+<script src="survival.js"></script>
+<script>
+(() => {
+  const sel = document.getElementById('modeSel');
+  document.getElementById('modeArena').addEventListener('click', () => {
+    sel.style.display = 'none';
+    document.getElementById('hud').style.display = 'block';
+    document.getElementById('menu').style.display = 'flex';
+    document.getElementById('cross').style.display = 'flex';
+    window.__ARENA();
+  });
+  document.getElementById('modeSurv').addEventListener('click', () => {
+    sel.style.display = 'none';
+    document.getElementById('shud').style.display = 'block';
+    document.getElementById('s_menu').style.display = 'flex';
+    document.getElementById('cross').style.display = 'flex';
+    window.__SURVIVAL();
+  });
+})();
+</script>
 </body>
 </html>
