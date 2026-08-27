@@ -1,4 +1,4 @@
-// Bundles src/ into a single self-contained index.html (three.js inlined).
+// Bundles src/ into a single self-contained index.html.
 // Usage: npm install && node build.mjs
 import esbuild from 'esbuild';
 import fs from 'node:fs';
@@ -13,7 +13,6 @@ const result = await esbuild.build({
   minify: true,
   format: 'iife',
   write: false,
-  nodePaths: process.env.NODE_PATH ? process.env.NODE_PATH.split(':') : [],
 });
 const js = result.outputFiles[0].text.replace(/<\/script>/g, '<\\/script>');
 const css = fs.readFileSync(path.join(root, 'src/style.css'), 'utf8');
@@ -24,7 +23,7 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Xenoterra</title>
+<title>Neon Sprawl</title>
 <style>
 ${css}</style>
 </head>
@@ -37,9 +36,8 @@ ${js}</script>
 fs.writeFileSync(path.join(root, 'index.html'), html);
 console.log(`built index.html (${(html.length / 1024).toFixed(0)} KB)`);
 
-// body-only variant for embedding (e.g. Claude Artifacts wrap their own skeleton)
 if (process.env.BODY_OUT) {
-  const body = `<title>Xenoterra</title>
+  const body = `<title>Neon Sprawl</title>
 <style>
 ${css}</style>
 ${ui}<script>

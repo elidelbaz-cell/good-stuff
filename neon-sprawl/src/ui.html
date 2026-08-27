@@ -1,0 +1,42 @@
+<canvas id="game"></canvas>
+<div id="hud">
+  <div id="topbar">
+    <div id="hpwrap"><div id="hpbar"></div></div>
+    <div id="stats">⭐ <span id="stat-score">0</span> · best <span id="stat-best">0</span> · <span id="stat-wanted">☆☆☆</span></div>
+  </div>
+  <div id="questbar" class="hidden">
+    <div id="quest-title">QUEST</div>
+    <div id="quest-obj">objective</div>
+    <div id="quest-arrow">→</div>
+  </div>
+
+  <div id="cutscene" class="hidden">
+    <div class="cutbar top"></div>
+    <div class="cutbar bottom"></div>
+    <div id="cut-box">
+      <div id="cut-speaker">GALACTIC PATROL</div>
+      <div id="cut-text"></div>
+      <div id="cut-adv">click / space ▸</div>
+    </div>
+    <button id="cut-skip">SKIP ▸▸</button>
+  </div>
+
+  <div id="hint" class="hidden"></div>
+  <div id="pops"></div>
+  <div id="flash"></div>
+
+  <div id="overlay">
+    <div id="panel">
+      <h1 id="o-title">NEON SPRAWL</h1>
+      <p id="o-sub">A 2D pixel odyssey. You are <b>Splort the Slippery</b> — the most wanted tentacle in the galaxy — cornered in a neon alien city with exactly <b>one rocket left</b>. Swing the skyline, work the quest line, dodge the patrol, and get off this rock.</p>
+      <div id="o-controls">
+        <div><b>A / D</b><span>run · <b>SPACE</b> jump</span></div>
+        <div><b>HOLD E</b><span>tentacle-swing (aim with the mouse) — release to fly</span></div>
+        <div><b>LEFT CLICK</b><span>tentacle punch → ZAPPER once you earn it</span></div>
+        <div><b>WALK UP TO PEOPLE</b><span>they talk — quests are how you get off this planet</span></div>
+        <div><b>🚨</b><span>crime raises your wanted level; outrun the saucers to cool off</span></div>
+      </div>
+      <button id="playbtn">PLAY</button>
+    </div>
+  </div>
+</div>
