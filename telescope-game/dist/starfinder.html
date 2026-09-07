@@ -1,0 +1,1088 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#070b14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Starfinder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap">
+  <style>
+:root {
+  --bg: #070b14;
+  --panel: #0e1424;
+  --panel-2: #141c31;
+  --line: #22304d;
+  --ink: #e8e6df;
+  --muted: #8b95ad;
+  --brass: #c9a15a;
+  --brass-2: #e7c987;
+  --violet: #7d4fd6;
+  --danger: #c25a5a;
+  --ok: #4fd39b;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --body: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--body); overflow: hidden; overscroll-behavior: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.hidden { display: none !important; }
+
+#app { position: fixed; inset: 0; display: flex; flex-direction: column; }
+
+#topbar {
+  padding: calc(8px + var(--safe-top)) 14px 8px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: linear-gradient(var(--panel), rgba(14,20,36,0.85));
+  border-bottom: 1px solid var(--line);
+  z-index: 5;
+}
+.credits { display: flex; align-items: center; gap: 6px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--brass-2); }
+.coin { width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffe7b0, #a67c2e); box-shadow: 0 0 0 1px #6c4d18 inset; }
+.clock { display: flex; gap: 10px; align-items: baseline; font-variant-numeric: tabular-nums; }
+.clock #night { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.clock #hour { font-family: var(--display); font-size: 22px; font-weight: 600; }
+
+.pill { padding: 8px 14px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; font-weight: 600; min-height: 36px; }
+.pill.ghost { background: transparent; }
+.pill.danger { color: var(--danger); border-color: #4a2a2a; }
+.pill.buy { background: var(--brass); color: #1b1407; border-color: transparent; }
+.pill.buy:disabled { background: var(--panel-2); color: var(--muted); border-color: var(--line); }
+.pill.owned { color: var(--ok); border-color: #1e4a3a; }
+
+#screens { flex: 1; position: relative; min-height: 0; }
+.screen { position: absolute; inset: 0; display: none; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.screen.active { display: block; }
+
+/* Telescope */
+#screen-telescope { overflow: hidden; touch-action: none; background: #02040a; }
+#sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#compass { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: min(86%, 380px); height: 30px; overflow: hidden; border-radius: 8px; background: rgba(7,11,20,0.7); border: 1px solid var(--line); }
+#compassTrack { position: absolute; top: 0; height: 100%; white-space: nowrap; font-size: 11px; color: var(--muted); }
+#compassTrack span { position: absolute; top: 0; height: 100%; display: flex; align-items: center; justify-content: center; width: 40px; margin-left: -20px; }
+#compassTrack span.major { color: var(--brass-2); font-weight: 700; font-size: 13px; }
+.compass-needle { position: absolute; left: 50%; top: 0; width: 2px; height: 100%; background: var(--brass); transform: translateX(-50%); }
+#readout { position: absolute; top: 46px; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+#message { position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); max-width: 80%; text-align: center; font-family: var(--display); font-size: 20px; font-style: italic; color: var(--brass-2); text-shadow: 0 2px 8px #000; pointer-events: none; transition: opacity .3s; }
+#zoomCtl { position: absolute; right: 14px; bottom: 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.round { width: 48px; height: 48px; border-radius: 50%; background: rgba(20,28,49,0.85); border: 1px solid var(--line); font-size: 24px; line-height: 1; }
+#zoomLabel { font-size: 13px; color: var(--brass-2); font-weight: 700; font-variant-numeric: tabular-nums; }
+#chartBtn { position: absolute; left: 14px; bottom: 16px; }
+#chart { position: absolute; left: 14px; bottom: 62px; width: 220px; height: 130px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: rgba(7,11,20,0.85); }
+#chartCanvas { width: 100%; height: 100%; display: block; }
+
+/* Index & shop */
+.index-head { padding: 18px 16px 8px; }
+h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0 6px; letter-spacing: .01em; }
+.sub { color: var(--muted); font-size: 13px; }
+.progress { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; margin: 8px 0 6px; }
+#indexBar { height: 100%; width: 0; background: linear-gradient(90deg, var(--brass), var(--brass-2)); transition: width .4s; }
+.tabs { display: flex; gap: 6px; padding: 4px 16px 10px; }
+.tab { padding: 8px 14px; border-radius: 999px; color: var(--muted); font-size: 13px; font-weight: 600; border: 1px solid transparent; }
+.tab.active { color: var(--ink); background: var(--panel-2); border-color: var(--line); }
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0 16px calc(24px + var(--safe-bottom)); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 12px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; min-height: 44px; }
+.card .model { width: 92px; height: 92px; display: grid; place-items: center; }
+.card .model svg { width: 100%; height: 100%; filter: drop-shadow(0 6px 14px rgba(0,0,0,.6)); }
+.card.unknown .model { border-radius: 50%; border: 1px dashed var(--line); font-family: var(--display); font-size: 40px; color: var(--line); }
+.card .name { font-family: var(--display); font-size: 20px; font-weight: 600; }
+.card .kind { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.card .flag { font-size: 11px; color: var(--ok); }
+.card .flag.hint { color: var(--brass-2); }
+
+.list { display: flex; flex-direction: column; gap: 10px; padding: 0 16px calc(24px + var(--safe-bottom)); }
+.row { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; gap: 12px; align-items: center; }
+.row .grow { flex: 1; min-width: 0; }
+.row .title { font-family: var(--display); font-size: 20px; font-weight: 600; display: flex; align-items: baseline; gap: 8px; }
+.row .title small { font-family: var(--body); font-size: 12px; color: var(--muted); }
+.row .desc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.row .effect { font-size: 12px; color: var(--brass-2); margin-top: 6px; }
+.dots { display: flex; gap: 4px; margin-top: 8px; }
+.dots i { width: 14px; height: 6px; border-radius: 3px; background: var(--panel-2); border: 1px solid var(--line); }
+.dots i.on { background: var(--brass); border-color: var(--brass); }
+.row .mini { width: 44px; height: 44px; flex: none; }
+.row .mini svg { width: 100%; height: 100%; }
+.row.up { border-color: #3b3a22; }
+.row .when { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink); }
+.status { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; padding: 4px 8px; border-radius: 6px; background: var(--panel-2); color: var(--muted); }
+.status.up { background: #1e3a2f; color: var(--ok); }
+.status.soon { background: #3a3220; color: var(--brass-2); }
+.shop-foot { display: flex; justify-content: space-between; gap: 10px; padding: 8px 16px calc(24px + var(--safe-bottom)); }
+
+/* Nav */
+#nav { display: flex; border-top: 1px solid var(--line); background: var(--panel); padding-bottom: var(--safe-bottom); }
+.navbtn { flex: 1; padding: 10px 0 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted); font-size: 11px; position: relative; min-height: 56px; }
+.navbtn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.navbtn.active { color: var(--brass-2); }
+.dot { position: absolute; top: 8px; right: calc(50% - 20px); width: 8px; height: 8px; border-radius: 50%; background: var(--brass); }
+
+/* Modals */
+.modal { position: fixed; inset: 0; background: rgba(2,4,10,0.7); backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
+.sheet { width: 100%; max-width: 520px; max-height: 88%; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 22px 22px 0 0; padding: 22px 20px calc(24px + var(--safe-bottom)); position: relative; }
+.sheet.center { border-radius: 22px; margin: 0 16px 18vh; text-align: center; }
+.close { position: absolute; top: 10px; right: 12px; width: 40px; height: 40px; font-size: 26px; color: var(--muted); }
+.detail-hero { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0 12px; }
+.detail-hero .big { width: 180px; height: 180px; }
+.detail-hero .big svg { width: 100%; height: 100%; filter: drop-shadow(0 12px 30px rgba(0,0,0,.7)); }
+.detail-hero .big.unknown { border-radius: 50%; border: 1px dashed var(--line); display: grid; place-items: center; font-family: var(--display); font-size: 80px; color: var(--line); }
+.detail-hero h2 { font-family: var(--display); font-size: 32px; font-weight: 600; margin: 8px 0 0; }
+.detail-hero .kind { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; }
+.lore { font-family: var(--display); font-size: 19px; font-style: italic; line-height: 1.35; color: var(--ink); text-align: center; margin: 0 0 14px; }
+.facts { display: flex; flex-direction: column; gap: 8px; }
+.fact { display: flex; align-items: center; gap: 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.fact .k { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); width: 74px; flex: none; }
+.fact .v { flex: 1; font-size: 14px; }
+.fact .v.locked { color: var(--muted); font-style: italic; }
+.fact .pill { flex: none; }
+.stats { display: flex; justify-content: center; gap: 18px; margin-top: 14px; color: var(--muted); font-size: 12px; }
+.stats b { color: var(--ink); font-size: 16px; display: block; font-family: var(--display); }
+
+.overlay-title { font-family: var(--display); font-size: 34px; font-weight: 600; margin: 4px 0 6px; }
+.overlay-sub { color: var(--muted); font-size: 14px; margin-bottom: 14px; }
+.overlay-list { text-align: left; display: flex; flex-direction: column; gap: 6px; margin: 0 0 16px; font-size: 14px; }
+.overlay-list div { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.overlay-list span:last-child { color: var(--brass-2); font-variant-numeric: tabular-nums; }
+.medals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0 16px; }
+.medals svg { width: 100%; height: auto; }
+
+#toast { position: fixed; left: 50%; top: calc(60px + var(--safe-top)); transform: translate(-50%, -10px); background: var(--panel-2); border: 1px solid var(--brass); color: var(--brass-2); padding: 10px 16px; border-radius: 12px; font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 30; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (min-width: 700px) {
+  #app { max-width: 480px; margin: 0 auto; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+}
+
+</style>
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div class="credits"><span class="coin"></span><span id="credits">0</span></div>
+      <div class="clock"><span id="night">Night 1</span><span id="hour">18:00</span></div>
+      <button id="speedBtn" class="pill" title="Time speed">1×</button>
+    </header>
+
+    <main id="screens">
+      <!-- Telescope -->
+      <section id="screen-telescope" class="screen active">
+        <canvas id="sky"></canvas>
+        <div id="compass"><div id="compassTrack"></div><div class="compass-needle"></div></div>
+        <div id="readout">Az 150° · Alt 40°</div>
+        <div id="message"></div>
+        <div id="zoomCtl">
+          <button id="zoomOut" class="round">−</button>
+          <div id="zoomLabel">×1</div>
+          <button id="zoomIn" class="round">+</button>
+        </div>
+        <button id="chartBtn" class="pill ghost hidden">Chart</button>
+        <div id="chart" class="hidden"><canvas id="chartCanvas"></canvas></div>
+      </section>
+
+      <!-- Index -->
+      <section id="screen-index" class="screen">
+        <div class="index-head">
+          <h1>Planetary Index</h1>
+          <div class="progress"><div id="indexBar"></div></div>
+          <div id="indexCount" class="sub">0 of 12 catalogued</div>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-tab="cards">Catalogue</button>
+          <button class="tab" data-tab="almanac">Tonight</button>
+        </div>
+        <div id="cards" class="grid"></div>
+        <div id="almanac" class="list hidden"></div>
+      </section>
+
+      <!-- Shop -->
+      <section id="screen-shop" class="screen">
+        <div class="index-head">
+          <h1>Workshop</h1>
+          <div class="sub">Spend credits to see farther, steadier, and finer.</div>
+        </div>
+        <div id="shop" class="list"></div>
+        <div class="shop-foot">
+          <button id="endNight" class="pill ghost">Sleep until dawn</button>
+          <button id="resetBtn" class="pill danger">Reset progress</button>
+        </div>
+      </section>
+    </main>
+
+    <nav id="nav">
+      <button class="navbtn active" data-screen="telescope">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v4M12 16v4M4 12h4M16 12h4"/></svg>
+        <span>Telescope</span></button>
+      <button class="navbtn" data-screen="index">
+        <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+        <span>Index</span><i id="indexDot" class="dot hidden"></i></button>
+      <button class="navbtn" data-screen="shop">
+        <svg viewBox="0 0 24 24"><path d="M4 8h16l-1.5 11h-13z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+        <span>Workshop</span></button>
+    </nav>
+
+    <!-- Planet detail -->
+    <div id="detail" class="modal hidden">
+      <div class="sheet">
+        <button class="close" data-close="detail">×</button>
+        <div id="detailBody"></div>
+      </div>
+    </div>
+
+    <!-- Dawn / events -->
+    <div id="overlay" class="modal hidden">
+      <div class="sheet center">
+        <div id="overlayBody"></div>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+  </div>
+
+  <script>
+/* Planet catalogue for Starfinder.
+ * Every model is an SVG (200x200 viewBox) drawn from gradients so it scales
+ * cleanly in the eyepiece, the index, and the design canvas.
+ * Sky mechanics per planet:
+ *   transit  - in-game hour (18..30, where 24 = midnight, 30 = 06:00) when the
+ *              planet is highest in the sky
+ *   halfSpan - hours either side of transit during which it is above the horizon
+ *   azCenter - compass bearing (deg) at transit; it drifts east->west across azSpread
+ *   maxAlt   - altitude (deg) at transit
+ *   period   - appears every N nights; offset picks which nights
+ *   size     - angular diameter in degrees (drives the zoom needed to resolve it)
+ *   mag      - faintness 1..5: telescope aperture level needed to see it
+ *   needsFilter - hidden inside a dust cloud unless the nebula filter is fitted
+ *   value    - credits per observation (discovery pays 3x)
+ */
+(function (root) {
+  'use strict';
+
+  function shade(id) {
+    return '<radialGradient id="' + id + '-sh" cx="0.32" cy="0.3" r="0.95">' +
+      '<stop offset="0.45" stop-color="#000" stop-opacity="0"/>' +
+      '<stop offset="1" stop-color="#000" stop-opacity="0.72"/></radialGradient>';
+  }
+
+  const PLANETS = [
+    {
+      id: 'aurelia', name: 'Aurelia', kind: 'Banded gas giant',
+      lore: 'A slow amber giant. Its storms take a hundred years to cross one band, and a pale oval has hung in its southern belt since the first sketches.',
+      transit: 21.5, halfSpan: 3.5, azCenter: 150, azSpread: 110, maxAlt: 48,
+      period: 1, offset: 0, size: 1.6, mag: 1, needsFilter: false, value: 40,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<linearGradient id="au-b" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#e8c986"/><stop offset="0.18" stop-color="#c98a3e"/>' +
+        '<stop offset="0.3" stop-color="#f1dba4"/><stop offset="0.42" stop-color="#b8702c"/>' +
+        '<stop offset="0.55" stop-color="#ecc98a"/><stop offset="0.66" stop-color="#a95f22"/>' +
+        '<stop offset="0.78" stop-color="#e9c48a"/><stop offset="0.9" stop-color="#c7853b"/>' +
+        '<stop offset="1" stop-color="#e6c48f"/></linearGradient>' +
+        '<clipPath id="au-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('au') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#au-b)"/>' +
+        '<g clip-path="url(#au-c)">' +
+        '<path d="M-10 78 Q60 70 120 80 T210 74 L210 88 Q140 92 80 84 T-10 92 Z" fill="#8f4a17" opacity="0.5"/>' +
+        '<path d="M-10 128 Q70 120 130 132 T210 126 L210 138 Q150 142 90 134 T-10 142 Z" fill="#8f4a17" opacity="0.45"/>' +
+        '<ellipse cx="128" cy="134" rx="22" ry="10" fill="#f7e7c3"/>' +
+        '<ellipse cx="128" cy="134" rx="14" ry="6" fill="#e0b071" opacity="0.7"/>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#au-sh)"/></svg>'
+    },
+    {
+      id: 'thessaly', name: 'Thessaly', kind: 'Ocean world',
+      lore: 'One shallow sea wraps the whole planet. Emerald archipelagos break the surface where old volcanoes still breathe.',
+      transit: 20.5, halfSpan: 3, azCenter: 240, azSpread: 90, maxAlt: 36,
+      period: 1, offset: 0, size: 1.0, mag: 1, needsFilter: false, value: 55,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="th-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#4fb7d8"/><stop offset="0.6" stop-color="#1d6fa5"/><stop offset="1" stop-color="#0d3a6b"/></radialGradient>' +
+        '<clipPath id="th-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('th') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#th-b)"/>' +
+        '<g clip-path="url(#th-c)" fill="#3f9a5a">' +
+        '<path d="M52 72 q18 -14 34 -4 q10 8 -2 18 q-14 10 -30 2 q-10 -6 -2 -16z"/>' +
+        '<path d="M118 118 q22 -10 36 6 q8 14 -10 20 q-22 4 -30 -8 q-4 -10 4 -18z"/>' +
+        '<path d="M80 140 q10 -6 18 2 q4 8 -6 10 q-12 0 -12 -12z"/>' +
+        '<path d="M140 62 q10 -4 14 4 q2 8 -8 8 q-10 -2 -6 -12z"/>' +
+        '</g>' +
+        '<g clip-path="url(#th-c)" fill="#fff" opacity="0.75">' +
+        '<path d="M20 100 q30 -18 70 -8 q30 8 60 -10 l0 8 q-30 16 -62 8 q-36 -8 -68 10z"/>' +
+        '<path d="M60 40 q20 -6 40 4 l-4 6 q-18 -8 -38 -2z"/>' +
+        '<path d="M100 160 q24 -10 50 -2 l-2 6 q-24 -6 -46 2z"/>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#th-sh)"/></svg>'
+    },
+    {
+      id: 'marrow', name: 'Marrow', kind: 'Cratered dwarf',
+      lore: 'Bone-white and airless. Every impact for four billion years is still written on its face.',
+      transit: 23, halfSpan: 4, azCenter: 95, azSpread: 120, maxAlt: 62,
+      period: 1, offset: 0, size: 0.55, mag: 2, needsFilter: false, value: 70,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="ma-b" cx="0.38" cy="0.36" r="0.8"><stop offset="0" stop-color="#f4f0e6"/><stop offset="0.7" stop-color="#c9c2b4"/><stop offset="1" stop-color="#8a8378"/></radialGradient>' +
+        '<clipPath id="ma-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('ma') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#ma-b)"/>' +
+        '<g clip-path="url(#ma-c)">' +
+        '<circle cx="70" cy="80" r="18" fill="#a59d90"/><circle cx="72" cy="78" r="13" fill="#d8d1c3"/>' +
+        '<circle cx="128" cy="118" r="26" fill="#a59d90"/><circle cx="131" cy="115" r="20" fill="#dcd5c7"/>' +
+        '<circle cx="106" cy="52" r="9" fill="#aaa294"/><circle cx="107" cy="51" r="6" fill="#d3ccbe"/>' +
+        '<circle cx="60" cy="140" r="12" fill="#a59d90"/><circle cx="62" cy="138" r="8" fill="#d6cfc1"/>' +
+        '<circle cx="150" cy="70" r="7" fill="#aaa294"/><circle cx="92" cy="160" r="6" fill="#aaa294"/>' +
+        '<circle cx="40" cy="104" r="5" fill="#aaa294"/>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#ma-sh)"/></svg>'
+    },
+    {
+      id: 'vespera', name: 'Vespera', kind: 'Ringed ice giant',
+      lore: 'Violet clouds under a wide, thin ring of shattered moon. Best seen low in the west just after the sky turns fully dark.',
+      transit: 19.5, halfSpan: 2.5, azCenter: 275, azSpread: 60, maxAlt: 26,
+      period: 1, offset: 0, size: 1.3, mag: 2, needsFilter: false, value: 90,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="ve-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#c9a6ff"/><stop offset="0.6" stop-color="#7d4fd6"/><stop offset="1" stop-color="#37206e"/></radialGradient>' +
+        '<linearGradient id="ve-r" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e9dcff" stop-opacity="0.15"/><stop offset="0.5" stop-color="#e9dcff" stop-opacity="0.9"/><stop offset="1" stop-color="#e9dcff" stop-opacity="0.15"/></linearGradient>' +
+        '<clipPath id="ve-c"><circle cx="100" cy="100" r="62"/></clipPath>' +
+        '<radialGradient id="ve-sh" cx="0.32" cy="0.3" r="0.95"><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.72"/></radialGradient></defs>' +
+        '<g transform="rotate(-18 100 100)">' +
+        '<path d="M2 100 a98 22 0 0 1 196 0" fill="none" stroke="url(#ve-r)" stroke-width="9"/>' +
+        '<circle cx="100" cy="100" r="62" fill="url(#ve-b)"/>' +
+        '<g clip-path="url(#ve-c)"><path d="M30 90 q40 -10 70 0 t70 -4 l0 8 q-30 6 -70 2 t-70 4z" fill="#fff" opacity="0.18"/></g>' +
+        '<circle cx="100" cy="100" r="62" fill="url(#ve-sh)"/>' +
+        '<path d="M2 100 a98 22 0 0 0 196 0" fill="none" stroke="url(#ve-r)" stroke-width="9"/>' +
+        '<path d="M14 100 a86 16 0 0 0 172 0" fill="none" stroke="#b79cf0" stroke-width="2" opacity="0.8"/>' +
+        '</g></svg>'
+    },
+    {
+      id: 'kelthar', name: 'Kelthar', kind: 'Lava world',
+      lore: 'A crust of black basalt split by rivers of light. It glows brightest on cold nights, which is when you should look.',
+      transit: 26, halfSpan: 2.5, azCenter: 40, azSpread: 70, maxAlt: 30,
+      period: 2, offset: 1, size: 0.7, mag: 2, needsFilter: false, value: 120,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="ke-b" cx="0.4" cy="0.38" r="0.8"><stop offset="0" stop-color="#4a3a36"/><stop offset="0.7" stop-color="#231a18"/><stop offset="1" stop-color="#0c0908"/></radialGradient>' +
+        '<radialGradient id="ke-g" cx="0.5" cy="0.5" r="0.5"><stop offset="0.7" stop-color="#ff7a1a" stop-opacity="0"/><stop offset="1" stop-color="#ff6a00" stop-opacity="0.35"/></radialGradient>' +
+        '<clipPath id="ke-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('ke') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#ke-b)"/>' +
+        '<g clip-path="url(#ke-c)" fill="none" stroke-linecap="round">' +
+        '<g stroke="#ff9a2e" stroke-width="6" opacity="0.5"><path d="M30 70 q30 20 50 10 t40 30 q20 10 50 0"/><path d="M60 150 q20 -30 50 -20 t50 -30"/><path d="M110 40 q-10 30 20 40"/></g>' +
+        '<g stroke="#ffd166" stroke-width="2.2"><path d="M30 70 q30 20 50 10 t40 30 q20 10 50 0"/><path d="M60 150 q20 -30 50 -20 t50 -30"/><path d="M110 40 q-10 30 20 40"/><path d="M50 110 q10 -8 22 4"/></g>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#ke-g)"/><circle cx="100" cy="100" r="90" fill="url(#ke-sh)"/></svg>'
+    },
+    {
+      id: 'cerule', name: 'Cerule', kind: 'Cloud giant',
+      lore: 'Deep blue with a single white spiral that never unwinds. Sailors on Thessaly are said to steer by it.',
+      transit: 24.5, halfSpan: 3, azCenter: 180, azSpread: 100, maxAlt: 70,
+      period: 1, offset: 0, size: 1.1, mag: 3, needsFilter: false, value: 130,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="ce-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#6fb0ff"/><stop offset="0.6" stop-color="#2358c9"/><stop offset="1" stop-color="#0f2a72"/></radialGradient>' +
+        '<clipPath id="ce-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('ce') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#ce-b)"/>' +
+        '<g clip-path="url(#ce-c)" fill="#fff">' +
+        '<path d="M-10 62 q60 -14 110 0 t110 -6 l0 10 q-50 8 -110 0 t-110 6z" opacity="0.5"/>' +
+        '<path d="M-10 140 q60 -10 110 2 t110 -4 l0 8 q-50 6 -110 0 t-110 4z" opacity="0.4"/>' +
+        '<path d="M118 100 m-26 0 a26 26 0 1 1 26 26 a18 18 0 1 0 -18 -18 a10 10 0 1 1 10 10" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.9"/>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#ce-sh)"/></svg>'
+    },
+    {
+      id: 'nimbrel', name: 'Nimbrel', kind: 'Aurora ice world',
+      lore: 'A frozen globe crowned by ribbons of green fire. The auroras flare when its star throws a tantrum, roughly every other night.',
+      transit: 27.5, halfSpan: 2.5, azCenter: 60, azSpread: 60, maxAlt: 44,
+      period: 2, offset: 0, size: 0.6, mag: 3, needsFilter: false, value: 160,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="ni-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#f2fbff"/><stop offset="0.55" stop-color="#b9dcef"/><stop offset="1" stop-color="#5e8fb0"/></radialGradient>' +
+        '<linearGradient id="ni-a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4cf2b0" stop-opacity="0"/><stop offset="0.5" stop-color="#4cf2b0" stop-opacity="0.9"/><stop offset="1" stop-color="#7ad0ff" stop-opacity="0"/></linearGradient>' +
+        '<clipPath id="ni-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('ni') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#ni-b)"/>' +
+        '<g clip-path="url(#ni-c)">' +
+        '<path d="M40 120 q20 -30 50 -20 t60 -10" fill="none" stroke="#dff3ff" stroke-width="10" opacity="0.6"/>' +
+        '<path d="M20 60 q40 -30 80 -14 t80 -8" fill="none" stroke="url(#ni-a)" stroke-width="14" stroke-linecap="round"/>' +
+        '<path d="M30 42 q40 -22 80 -10 t70 -4" fill="none" stroke="url(#ni-a)" stroke-width="6" stroke-linecap="round" opacity="0.8"/>' +
+        '<ellipse cx="100" cy="24" rx="60" ry="14" fill="#fff" opacity="0.5"/>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#ni-sh)"/></svg>'
+    },
+    {
+      id: 'quillon', name: 'Quillon', kind: 'Triple-ringed world',
+      lore: 'Rust-red under three crisp rings and a pair of shepherd moons. The rings open widest around midnight.',
+      transit: 24, halfSpan: 3, azCenter: 320, azSpread: 80, maxAlt: 40,
+      period: 1, offset: 0, size: 0.9, mag: 3, needsFilter: true, value: 190,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="qu-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#f0a072"/><stop offset="0.6" stop-color="#b5522a"/><stop offset="1" stop-color="#4f1f10"/></radialGradient>' +
+        '<radialGradient id="qu-sh" cx="0.32" cy="0.3" r="0.95"><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.72"/></radialGradient></defs>' +
+        '<g transform="rotate(22 100 100)">' +
+        '<g fill="none" opacity="0.85"><path d="M8 100 a92 26 0 0 1 184 0" stroke="#f3d9b8" stroke-width="5"/><path d="M18 100 a82 22 0 0 1 164 0" stroke="#d9a67a" stroke-width="3"/><path d="M28 100 a72 18 0 0 1 144 0" stroke="#f3d9b8" stroke-width="4"/></g>' +
+        '<circle cx="100" cy="100" r="54" fill="url(#qu-b)"/>' +
+        '<circle cx="100" cy="100" r="54" fill="url(#qu-sh)"/>' +
+        '<g fill="none" opacity="0.95"><path d="M8 100 a92 26 0 0 0 184 0" stroke="#f3d9b8" stroke-width="5"/><path d="M18 100 a82 22 0 0 0 164 0" stroke="#d9a67a" stroke-width="3"/><path d="M28 100 a72 18 0 0 0 144 0" stroke="#f3d9b8" stroke-width="4"/></g>' +
+        '<circle cx="30" cy="84" r="5" fill="#e7d3bd"/><circle cx="176" cy="112" r="4" fill="#cdb69b"/>' +
+        '</g></svg>'
+    },
+    {
+      id: 'ilvane', name: 'Ilvane', kind: 'Storm world',
+      lore: 'One hurricane the size of a continent stares back at whoever finds it. It hides inside the dust of the Weaver Cloud.',
+      transit: 22, halfSpan: 2, azCenter: 205, azSpread: 50, maxAlt: 55,
+      period: 1, offset: 0, size: 0.75, mag: 4, needsFilter: true, value: 230,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="il-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#8ee6c8"/><stop offset="0.6" stop-color="#1f8f7a"/><stop offset="1" stop-color="#0b3f3a"/></radialGradient>' +
+        '<radialGradient id="il-e" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#05201f"/><stop offset="0.35" stop-color="#0d5a4f"/><stop offset="0.6" stop-color="#bff5e6"/><stop offset="1" stop-color="#bff5e6" stop-opacity="0"/></radialGradient>' +
+        '<clipPath id="il-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('il') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#il-b)"/>' +
+        '<g clip-path="url(#il-c)">' +
+        '<path d="M-10 60 q60 10 110 -6 t110 4 l0 8 q-50 -8 -110 6 t-110 -4z" fill="#dffaf0" opacity="0.35"/>' +
+        '<path d="M-10 150 q60 -10 110 4 t110 -2 l0 8 q-50 -6 -110 0 t-110 -2z" fill="#dffaf0" opacity="0.3"/>' +
+        '<ellipse cx="92" cy="104" rx="40" ry="30" fill="url(#il-e)"/>' +
+        '<path d="M52 104 q20 -46 80 -30" fill="none" stroke="#e9fff7" stroke-width="4" stroke-linecap="round" opacity="0.7"/>' +
+        '<path d="M132 104 q-20 46 -80 30" fill="none" stroke="#e9fff7" stroke-width="4" stroke-linecap="round" opacity="0.7"/>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#il-sh)"/></svg>'
+    },
+    {
+      id: 'orrun', name: 'Orrun', kind: 'Contact binary',
+      lore: 'Two rocky worlds that fell into each other and never let go. They tumble once every nine hours, so the shape changes as you watch.',
+      transit: 28.5, halfSpan: 1.8, azCenter: 110, azSpread: 45, maxAlt: 24,
+      period: 3, offset: 2, size: 0.45, mag: 4, needsFilter: false, value: 280,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="or-a" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#d9c7b3"/><stop offset="0.7" stop-color="#8f7660"/><stop offset="1" stop-color="#3f3128"/></radialGradient>' +
+        '<radialGradient id="or-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#c9b39d"/><stop offset="0.7" stop-color="#7c644f"/><stop offset="1" stop-color="#33271f"/></radialGradient>' +
+        '<radialGradient id="or-sh" cx="0.32" cy="0.3" r="0.95"><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.7"/></radialGradient></defs>' +
+        '<g transform="rotate(-28 100 100)">' +
+        '<circle cx="128" cy="100" r="40" fill="url(#or-b)"/>' +
+        '<circle cx="72" cy="100" r="52" fill="url(#or-a)"/>' +
+        '<path d="M108 66 q14 16 14 34 t-14 34 q4 -34 0 -68z" fill="#5a4839" opacity="0.6"/>' +
+        '<circle cx="60" cy="86" r="10" fill="#6e5947" opacity="0.7"/><circle cx="62" cy="84" r="7" fill="#b9a48d"/>' +
+        '<circle cx="84" cy="124" r="7" fill="#6e5947" opacity="0.7"/><circle cx="85" cy="123" r="4.5" fill="#b9a48d"/>' +
+        '<circle cx="138" cy="112" r="8" fill="#5f4c3c" opacity="0.7"/><circle cx="139" cy="111" r="5" fill="#a89178"/>' +
+        '<circle cx="72" cy="100" r="52" fill="url(#or-sh)"/><circle cx="128" cy="100" r="40" fill="url(#or-sh)" opacity="0.9"/>' +
+        '</g></svg>'
+    },
+    {
+      id: 'sable', name: 'Sable Nine', kind: 'Dark bioluminescent world',
+      lore: 'Almost perfectly black. Only the largest mirrors catch the teal veins of something alive glowing under its ice.',
+      transit: 25, halfSpan: 2.2, azCenter: 140, azSpread: 60, maxAlt: 52,
+      period: 2, offset: 1, size: 0.65, mag: 5, needsFilter: false, value: 340,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="sa-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#2a3038"/><stop offset="0.7" stop-color="#0f1216"/><stop offset="1" stop-color="#040506"/></radialGradient>' +
+        '<clipPath id="sa-c"><circle cx="100" cy="100" r="90"/></clipPath>' +
+        '<radialGradient id="sa-sh" cx="0.32" cy="0.3" r="0.95"><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.6"/></radialGradient></defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#sa-b)"/>' +
+        '<g clip-path="url(#sa-c)" fill="none" stroke-linecap="round">' +
+        '<g stroke="#2ee6c5" stroke-width="7" opacity="0.25"><path d="M40 60 q30 30 20 60 t30 40"/><path d="M60 40 q40 20 70 10 t40 30"/><path d="M90 100 q30 -10 40 30 t30 20"/></g>' +
+        '<g stroke="#8ffff0" stroke-width="1.8"><path d="M40 60 q30 30 20 60 t30 40"/><path d="M60 40 q40 20 70 10 t40 30"/><path d="M90 100 q30 -10 40 30 t30 20"/><path d="M70 120 q10 10 30 6"/><path d="M120 60 q6 12 -4 22"/></g>' +
+        '<g fill="#c9fff7"><circle cx="60" cy="90" r="2"/><circle cx="130" cy="130" r="2.4"/><circle cx="96" cy="150" r="1.6"/><circle cx="150" cy="70" r="1.8"/></g>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#sa-sh)"/><circle cx="100" cy="100" r="89" fill="none" stroke="#3b4652" stroke-width="1.5"/></svg>'
+    },
+    {
+      id: 'pyrrhic', name: 'Pyrrhic Crown', kind: 'Ember rogue',
+      lore: 'A planet that lost its star and kept burning anyway. It wears a corona of its own boiling atmosphere and passes only once in three nights, just before dawn.',
+      transit: 29, halfSpan: 1.5, azCenter: 80, azSpread: 40, maxAlt: 18,
+      period: 3, offset: 0, size: 0.5, mag: 5, needsFilter: true, value: 420,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="py-b" cx="0.4" cy="0.38" r="0.8"><stop offset="0" stop-color="#ffd36b"/><stop offset="0.5" stop-color="#e2531c"/><stop offset="1" stop-color="#5a0f0a"/></radialGradient>' +
+        '<radialGradient id="py-h" cx="0.5" cy="0.5" r="0.5"><stop offset="0.6" stop-color="#ff8a1f" stop-opacity="0.55"/><stop offset="1" stop-color="#ff8a1f" stop-opacity="0"/></radialGradient>' +
+        '<clipPath id="py-c"><circle cx="100" cy="100" r="58"/></clipPath>' +
+        '<radialGradient id="py-sh" cx="0.32" cy="0.3" r="0.95"><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.6"/></radialGradient></defs>' +
+        '<circle cx="100" cy="100" r="98" fill="url(#py-h)"/>' +
+        '<g fill="#ffb347" opacity="0.85">' +
+        '<path d="M100 8 l7 34 l-14 0z"/><path d="M100 192 l7 -34 l-14 0z"/><path d="M8 100 l34 -7 l0 14z"/><path d="M192 100 l-34 -7 l0 14z"/>' +
+        '<path d="M35 35 l29 19 l-10 10z"/><path d="M165 165 l-29 -19 l10 -10z"/><path d="M165 35 l-19 29 l-10 -10z"/><path d="M35 165 l19 -29 l10 10z"/>' +
+        '</g>' +
+        '<circle cx="100" cy="100" r="58" fill="url(#py-b)"/>' +
+        '<g clip-path="url(#py-c)" fill="#ffe9a8" opacity="0.7"><path d="M50 90 q20 -10 40 4 t50 -6 l0 6 q-30 8 -50 2 t-40 0z"/><path d="M60 126 q30 -6 60 4 l0 5 q-30 -6 -60 0z"/></g>' +
+        '<circle cx="100" cy="100" r="58" fill="url(#py-sh)"/></svg>'
+    }
+  ];
+
+  root.PLANETS = PLANETS;
+  if (typeof module !== 'undefined' && module.exports) module.exports = PLANETS;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* Starfinder — a pocket telescope game.
+ * Pan the sky, find made-up planets at the right hour and bearing, earn credits,
+ * upgrade the instrument, complete the Planetary Index.
+ */
+(function () {
+  'use strict';
+
+  // ---------- Tunables ----------
+  const NIGHT_START = 18;             // 18:00
+  const NIGHT_END = 30;               // 06:00 next morning
+  const REAL_SECONDS_PER_HOUR = 30;   // one game hour of night lasts this long at 1x
+  const FOLLOW_RATE = [0, 1.5, 3, 5, 12]; // how strongly the mount follows a locked planet, by tracking level
+  const ZOOMS = [1, 2, 4, 8, 16, 32];
+  const BASE_FOV = 60;                // degrees across the eyepiece at 1x
+  const OBS_SECONDS = 3;              // hold the planet centred this long
+  const DAWN_GRANT = 60;
+  const SAVE_KEY = 'starfinder-save-v1';
+
+  const UPGRADES = {
+    aperture: { name: 'Mirror', unit: 'aperture', max: 5, costs: [0, 150, 400, 900, 2000],
+      desc: 'A wider mirror gathers more light and shows fainter worlds.',
+      effect: l => `Sees objects of faintness ${l} and below` },
+    mag: { name: 'Eyepieces', unit: 'magnification', max: 6, costs: [0, 100, 250, 600, 1200, 2500],
+      desc: 'Stronger eyepieces resolve small planets into discs.',
+      effect: l => `Zoom up to ×${ZOOMS[l - 1]}` },
+    tracking: { name: 'Mount', unit: 'tracking', max: 4, costs: [0, 120, 350, 800],
+      desc: 'A motorised mount steadies the view and cancels drift.',
+      effect: l => l >= 4 ? 'Rock steady, locks on and follows' : ['', 'Shaky, follows a locked planet slowly', 'Half the shake, follows better', 'Little shake, follows well'][l] },
+    camera: { name: 'Camera', unit: 'imaging', max: 4, costs: [0, 200, 500, 1200],
+      desc: 'Better sensors make each observation worth more to the archive.',
+      effect: l => `×${[1, 1, 1.6, 2.4, 3.5][l]} credits per observation` },
+    filter: { name: 'Nebula filter', unit: 'filter', max: 2, costs: [0, 700],
+      desc: 'Cuts through dust clouds that hide some planets entirely.',
+      effect: l => l >= 2 ? 'Dust clouds are transparent' : 'Not fitted' },
+    chart: { name: 'Star chart', unit: 'chart', max: 2, costs: [0, 500],
+      desc: 'An all-sky chart in the eyepiece marking planets you know the bearing of.',
+      effect: l => l >= 2 ? 'Chart available in the telescope view' : 'Not owned' }
+  };
+  const CAMERA_MULT = [1, 1, 1.6, 2.4, 3.5];
+  const HINT_KEYS = ['time', 'direction', 'gear'];
+
+  // ---------- State ----------
+  const defaultState = () => ({
+    credits: 0, night: 1, hour: NIGHT_START, speed: 1,
+    viewAz: 195, viewAlt: 18, zoomIdx: 0,
+    up: { aperture: 1, mag: 1, tracking: 1, camera: 1, filter: 1, chart: 1 },
+    discovered: {}, observedNight: {}, obsCount: {}, hints: {},
+    nightLog: [], seenComplete: false, showChart: false
+  });
+  let S = load();
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (raw) return Object.assign(defaultState(), JSON.parse(raw));
+    } catch (e) { /* fresh start */ }
+    return defaultState();
+  }
+  function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } }
+
+  // ---------- Helpers ----------
+  const $ = id => document.getElementById(id);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const wrap180 = d => ((d + 540) % 360) - 180;
+  const rad = d => d * Math.PI / 180;
+  const fmtHour = h => { const hh = Math.floor(h) % 24, mm = Math.floor((h % 1) * 60); return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`; };
+  const fmtCredits = n => Math.round(n).toLocaleString();
+  const zoom = () => ZOOMS[S.zoomIdx];
+  const fov = () => BASE_FOV / zoom();
+  const bearingName = az => ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(((az % 360) + 360) % 360 / 45) % 8];
+  const bearingLong = az => ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' })[bearingName(az)];
+
+  function mulberry(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  // ---------- Sky model ----------
+  const STARS = (() => {
+    const r = mulberry(20260907), out = [];
+    for (let i = 0; i < 2600; i++) {
+      out.push({ az: r() * 360, alt: Math.asin(r()) * 180 / Math.PI, m: r(), tw: r() * Math.PI * 2, warm: r() });
+    }
+    return out;
+  })();
+  const DUST = [
+    { az: 205, alt: 50, r: 34, name: 'Weaver Cloud' },
+    { az: 320, alt: 38, r: 44, name: 'Rust Veil' },
+    { az: 80, alt: 14, r: 30, name: 'Ember Bank' }
+  ];
+
+  function planetActiveTonight(p, night) { return (night + p.offset) % p.period === 0; }
+  function planetPos(p, hour, night) {
+    if (!planetActiveTonight(p, night)) return null;
+    const dt = hour - p.transit;
+    if (Math.abs(dt) > p.halfSpan) return null;
+    const f = dt / p.halfSpan;
+    const alt = p.maxAlt * Math.cos(f * Math.PI / 2);
+    if (alt < 3) return null;
+    return { az: ((p.azCenter + f * p.azSpread / 2) % 360 + 360) % 360, alt };
+  }
+  function planetWindow(p) {
+    const rise = Math.max(NIGHT_START, p.transit - p.halfSpan), set = Math.min(NIGHT_END, p.transit + p.halfSpan);
+    return { rise, set };
+  }
+  function nextAppearance(p) {
+    // returns {night, hour} of the next time the planet is up, relative to now
+    for (let n = S.night; n < S.night + 6; n++) {
+      if (!planetActiveTonight(p, n)) continue;
+      const w = planetWindow(p);
+      if (n === S.night) { if (S.hour < w.set) return { night: n, hour: Math.max(w.rise, S.hour), rise: w.rise, set: w.set }; }
+      else return { night: n, hour: w.rise, rise: w.rise, set: w.set };
+    }
+    return null;
+  }
+  function zoomNeededFor(p) {
+    // smallest zoom at which the planet resolves into a disc (>= 18px) on a 340px eyepiece
+    for (let i = 0; i < ZOOMS.length; i++) { const px = p.size * (340 / (BASE_FOV / ZOOMS[i])); if (px >= 18) return ZOOMS[i]; }
+    return ZOOMS[ZOOMS.length - 1];
+  }
+  function hintCost(p, key) { return Math.round(p.value * { time: 0.5, direction: 0.7, gear: 0.4 }[key]); }
+
+  // Each inline copy of a model gets unique gradient/clip ids, otherwise a copy
+  // inside a hidden screen would win the id lookup and the visible one goes blank.
+  let svgSeq = 0;
+  function svgOf(p) {
+    const t = '-i' + (svgSeq++);
+    return p.svg.replace(/id="([^"]+)"/g, (m, id) => `id="${id}${t}"`).replace(/url\(#([^)]+)\)/g, (m, id) => `url(#${id}${t})`);
+  }
+
+  // ---------- Planet images ----------
+  const IMG = {};
+  PLANETS.forEach(p => { const im = new Image(); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(p.svg); IMG[p.id] = im; });
+
+  // ---------- Canvas / telescope ----------
+  const canvas = $('sky'), ctx = canvas.getContext('2d');
+  let W = 0, H = 0, DPR = 1, R = 150, CX = 0, CY = 0;
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = canvas.getBoundingClientRect();
+    W = rect.width; H = rect.height;
+    canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    R = Math.min(W, H) * 0.42; CX = W / 2; CY = H / 2 - 10;
+  }
+  window.addEventListener('resize', resize);
+
+  const pxPerDeg = () => (2 * R) / fov();
+  const azScale = () => Math.max(0.15, Math.cos(rad(S.viewAlt)));
+  let shake = { x: 0, y: 0 };
+  function project(az, alt) {
+    const s = pxPerDeg();
+    return { x: CX + wrap180(az - S.viewAz) * azScale() * s + shake.x, y: CY - (alt - S.viewAlt) * s + shake.y };
+  }
+
+  // observation state
+  let obs = { id: null, t: 0 };
+  let msg = { text: '', until: 0 };
+  function setMessage(text, ms) { msg.text = text; msg.until = performance.now() + (ms || 1800); }
+
+  // per-frame status of each planet (used for hints + observation)
+  function planetStatus(p, pos) {
+    const d = p.size * pxPerDeg();
+    const resolved = d >= 18;
+    const apertureOk = p.mag <= S.up.aperture;
+    const filterOk = !p.needsFilter || S.up.filter >= 2;
+    return { d, resolved, apertureOk, filterOk, glimmer: !apertureOk && p.mag === S.up.aperture + 1, pos };
+  }
+
+  function drawSky(now, dt) {
+    ctx.clearRect(0, 0, W, H);
+    // eyepiece mask
+    ctx.save();
+    ctx.beginPath(); ctx.arc(CX, CY, R, 0, Math.PI * 2); ctx.clip();
+    const g = ctx.createRadialGradient(CX, CY, R * 0.2, CX, CY, R);
+    g.addColorStop(0, '#0a1020'); g.addColorStop(1, '#03060d');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    const s = pxPerDeg(), half = fov() / 2 + 2, z = zoom();
+    // horizon glow if looking low
+    const horizonY = CY + S.viewAlt * s;
+    if (horizonY < CY + R + 40) {
+      const hg = ctx.createLinearGradient(0, horizonY - 80, 0, horizonY);
+      hg.addColorStop(0, 'rgba(60,40,30,0)'); hg.addColorStop(1, 'rgba(90,60,40,0.55)');
+      ctx.fillStyle = hg; ctx.fillRect(0, horizonY - 80, W, 80);
+      ctx.fillStyle = '#05070c'; ctx.fillRect(0, horizonY, W, H);
+    }
+    // dust clouds
+    DUST.forEach(dc => {
+      if (Math.abs(wrap180(dc.az - S.viewAz)) > dc.r + half || Math.abs(dc.alt - S.viewAlt) > dc.r + half) return;
+      const c = project(dc.az, dc.alt), rr = dc.r * s;
+      const dg = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, rr);
+      const a = S.up.filter >= 2 ? 0.12 : 0.55;
+      dg.addColorStop(0, `rgba(120,90,70,${a})`); dg.addColorStop(0.6, `rgba(90,70,60,${a * 0.6})`); dg.addColorStop(1, 'rgba(60,50,45,0)');
+      ctx.fillStyle = dg; ctx.beginPath(); ctx.arc(c.x, c.y, rr, 0, Math.PI * 2); ctx.fill();
+    });
+    // stars
+    const faintCut = z >= 8 ? 0 : z >= 4 ? 0.25 : z >= 2 ? 0.45 : 0.6;
+    for (const st of STARS) {
+      if (st.m < faintCut) continue;
+      if (Math.abs(wrap180(st.az - S.viewAz)) > half / azScale() || Math.abs(st.alt - S.viewAlt) > half) continue;
+      const pt = project(st.az, st.alt);
+      const tw = 0.75 + 0.25 * Math.sin(now / 600 + st.tw);
+      const size = (0.6 + st.m * 1.6) * tw;
+      ctx.fillStyle = st.warm > 0.8 ? `rgba(255,220,180,${0.5 + st.m * 0.5})` : st.warm < 0.15 ? `rgba(190,210,255,${0.5 + st.m * 0.5})` : `rgba(240,240,255,${0.45 + st.m * 0.55})`;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, size, 0, Math.PI * 2); ctx.fill();
+    }
+    // planets
+    let lockCandidate = null, lockDist = Infinity, feedback = null;
+    for (const p of PLANETS) {
+      const pos = planetPos(p, S.hour, S.night);
+      if (!pos) continue;
+      if (Math.abs(wrap180(pos.az - S.viewAz)) > half / azScale() + 3 || Math.abs(pos.alt - S.viewAlt) > half + 3) continue;
+      const st = planetStatus(p, pos), pt = project(pos.az, pos.alt);
+      const dist = Math.hypot(pt.x - CX, pt.y - CY);
+      const inLock = dist <= Math.max(st.d / 2, 14) + 8;
+      if (!st.apertureOk) {
+        if (st.glimmer) {
+          ctx.fillStyle = 'rgba(200,200,220,0.13)'; ctx.beginPath(); ctx.arc(pt.x, pt.y, Math.max(2, st.d / 3), 0, Math.PI * 2); ctx.fill();
+          if (inLock) feedback = 'Something faint is here. A wider mirror would show it.';
+        }
+        continue;
+      }
+      if (!st.filterOk) {
+        ctx.fillStyle = 'rgba(160,130,110,0.25)'; ctx.beginPath(); ctx.arc(pt.x, pt.y, Math.max(6, st.d * 0.8), 0, Math.PI * 2); ctx.fill();
+        if (inLock) feedback = 'A smudge behind the dust. A nebula filter would cut through.';
+        continue;
+      }
+      if (!st.resolved) {
+        // star-like point, but slightly larger and steadier than stars
+        const gl = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 7);
+        gl.addColorStop(0, 'rgba(255,250,230,0.95)'); gl.addColorStop(0.4, 'rgba(255,240,200,0.5)'); gl.addColorStop(1, 'rgba(255,240,200,0)');
+        ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2); ctx.fill();
+        if (inLock) feedback = 'A steady point that does not twinkle. Zoom in to resolve it.';
+        continue;
+      }
+      const im = IMG[p.id];
+      if (im.complete) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(255,240,220,0.35)'; ctx.shadowBlur = st.d * 0.25;
+        ctx.drawImage(im, pt.x - st.d / 2, pt.y - st.d / 2, st.d, st.d);
+        ctx.restore();
+      }
+      if (inLock && dist < lockDist) { lockDist = dist; lockCandidate = p; }
+    }
+    ctx.restore();
+
+    // observation logic
+    if (lockCandidate) {
+      if (obs.id !== lockCandidate.id) { obs.id = lockCandidate.id; obs.t = 0; }
+      // the mount follows whatever is centred, better with a better mount
+      if (!pointers.size && dt > 0) {
+        const pos = planetPos(lockCandidate, S.hour, S.night), k = Math.min(1, dt * FOLLOW_RATE[S.up.tracking]);
+        S.viewAz = ((S.viewAz + wrap180(pos.az - S.viewAz) * k) % 360 + 360) % 360;
+        S.viewAlt = clamp(S.viewAlt + (pos.alt - S.viewAlt) * k, 0, 88);
+      }
+      const alreadyTonight = S.observedNight[lockCandidate.id] === S.night;
+      if (alreadyTonight) {
+        feedback = `${lockCandidate.name} — already logged tonight.`;
+      } else {
+        obs.t += dt / OBS_SECONDS;
+        feedback = S.discovered[lockCandidate.id] ? `Holding on ${lockCandidate.name}…` : 'Hold steady… something new.';
+        if (obs.t >= 1) completeObservation(lockCandidate);
+      }
+    } else {
+      obs.t = Math.max(0, obs.t - dt / 1.2);
+      if (obs.t === 0) obs.id = null;
+    }
+    if (feedback) setMessage(feedback, 400);
+
+    // reticle + progress ring
+    ctx.strokeStyle = 'rgba(201,161,90,0.35)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(CX - 26, CY); ctx.lineTo(CX - 10, CY); ctx.moveTo(CX + 10, CY); ctx.lineTo(CX + 26, CY);
+    ctx.moveTo(CX, CY - 26); ctx.lineTo(CX, CY - 10); ctx.moveTo(CX, CY + 10); ctx.lineTo(CX, CY + 26); ctx.stroke();
+    ctx.beginPath(); ctx.arc(CX, CY, 30, 0, Math.PI * 2); ctx.stroke();
+    if (obs.t > 0) {
+      ctx.strokeStyle = '#e7c987'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(CX, CY, 34, -Math.PI / 2, -Math.PI / 2 + obs.t * Math.PI * 2); ctx.stroke();
+    }
+    // eyepiece rim
+    ctx.strokeStyle = '#2a3552'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(CX, CY, R + 3, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = '#c9a15a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(CX, CY, R + 7, 0, Math.PI * 2); ctx.stroke();
+    // vignette
+    const v = ctx.createRadialGradient(CX, CY, R * 0.7, CX, CY, R);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = v; ctx.beginPath(); ctx.arc(CX, CY, R, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function completeObservation(p) {
+    obs.t = 0; obs.id = null;
+    const first = !S.discovered[p.id];
+    const mult = CAMERA_MULT[S.up.camera];
+    const earned = Math.round(p.value * mult * (first ? 4 : 1));
+    S.credits += earned;
+    S.discovered[p.id] = true;
+    S.observedNight[p.id] = S.night;
+    S.obsCount[p.id] = (S.obsCount[p.id] || 0) + 1;
+    S.nightLog.push({ name: p.name, earned, first });
+    save();
+    toast(first ? `Discovered ${p.name}! +${earned}` : `${p.name} logged. +${earned}`);
+    if (first) { $('indexDot').classList.remove('hidden'); flashDiscovery(p); }
+    renderTop(); renderIndex();
+    const total = PLANETS.filter(q => S.discovered[q.id]).length;
+    if (total === PLANETS.length && !S.seenComplete) { S.seenComplete = true; save(); setTimeout(showComplete, 1600); }
+  }
+  function flashDiscovery(p) {
+    const body = $('overlayBody');
+    body.innerHTML = `<div class="detail-hero"><div class="big">${svgOf(p)}</div><h2>${p.name}</h2><div class="kind">${p.kind}</div></div>
+      <p class="lore">${p.lore}</p><button class="pill buy" data-close="overlay">Add to the Index</button>`;
+    $('overlay').classList.remove('hidden');
+  }
+  function showComplete() {
+    const body = $('overlayBody');
+    body.innerHTML = `<div class="overlay-title">Index complete</div><div class="overlay-sub">Every world in the catalogue has been seen through your glass. Keep observing — the archive still pays.</div>
+      <div class="medals">${PLANETS.map(p => svgOf(p)).join('')}</div><button class="pill buy" data-close="overlay">Continue</button>`;
+    $('overlay').classList.remove('hidden');
+  }
+
+  // ---------- Time ----------
+  let last = performance.now(), paused = false;
+  function tick(now) {
+    const dtReal = Math.min(0.1, (now - last) / 1000); last = now;
+    if (!paused && $('overlay').classList.contains('hidden')) {
+      S.hour += dtReal * S.speed / REAL_SECONDS_PER_HOUR;
+      if (S.hour >= NIGHT_END) { dawn(); }
+      // drift + shake
+      const tr = S.up.tracking;
+      if (tr < 4 && screen === 'telescope') S.viewAz = (S.viewAz + dtReal * 0.05 / tr) % 360;
+      const amp = (tr >= 4 ? 0.004 : 0.06 / tr) * pxPerDeg();
+      shake.x = Math.sin(now / 130) * amp * 0.6 + Math.sin(now / 47) * amp * 0.4;
+      shake.y = Math.cos(now / 170) * amp * 0.6 + Math.sin(now / 61) * amp * 0.4;
+    }
+    if (screen === 'telescope') {
+      drawSky(now, paused ? 0 : dtReal);
+      renderReadout();
+      if (S.up.chart >= 2 && S.showChart) drawChart();
+    }
+    if (now - lastTop > 250) { renderTop(); lastTop = now; }
+    if (msg.until < now && $('message').textContent) $('message').textContent = '';
+    else if ($('message').textContent !== msg.text && msg.until >= now) $('message').textContent = msg.text;
+    requestAnimationFrame(tick);
+  }
+  let lastTop = 0;
+
+  function dawn() {
+    const log = S.nightLog.slice();
+    const grant = DAWN_GRANT;
+    S.credits += grant;
+    S.night += 1; S.hour = NIGHT_START; S.nightLog = []; S.speed = 1;
+    save();
+    const body = $('overlayBody');
+    body.innerHTML = `<div class="overlay-title">Dawn</div><div class="overlay-sub">Night ${S.night - 1} is over. The observatory grant arrives with the sun.</div>
+      <div class="overlay-list">${log.map(l => `<div><span>${l.first ? '★ ' : ''}${l.name}</span><span>+${l.earned}</span></div>`).join('')}<div><span>Observatory grant</span><span>+${grant}</span></div></div>
+      <button class="pill buy" data-close="overlay">Wait for dusk</button>`;
+    $('overlay').classList.remove('hidden');
+    renderTop(); renderAlmanac(); renderShop();
+  }
+
+  // ---------- UI: top bar / readouts ----------
+  function renderTop() {
+    $('credits').textContent = fmtCredits(S.credits);
+    $('night').textContent = `Night ${S.night}`;
+    $('hour').textContent = fmtHour(S.hour);
+    $('speedBtn').textContent = S.speed === 1 ? '1×' : `${S.speed}×`;
+  }
+  function renderReadout() {
+    $('readout').textContent = `Az ${Math.round(S.viewAz)}° ${bearingName(S.viewAz)} · Alt ${Math.round(S.viewAlt)}° · FOV ${fov() < 10 ? fov().toFixed(1) : Math.round(fov())}°`;
+    $('zoomLabel').textContent = `×${zoom()}`;
+    // compass track: 20px per 5 degrees, centered on viewAz
+    const track = $('compassTrack'), pxPer = 8;
+    if (!track.childElementCount) {
+      for (let d = -360; d <= 720; d += 15) {
+        const sp = document.createElement('span'); const dd = ((d % 360) + 360) % 360;
+        const major = dd % 45 === 0; sp.className = major ? 'major' : ''; sp.textContent = major ? bearingName(dd) : dd + '°';
+        sp.style.left = (d + 360) * pxPer + 'px'; track.appendChild(sp);
+      }
+    }
+    const width = $('compass').clientWidth;
+    track.style.left = (width / 2 - (S.viewAz + 360) * pxPer) + 'px';
+  }
+
+  // ---------- Star chart ----------
+  const chartCanvas = $('chartCanvas');
+  function drawChart() {
+    const cc = chartCanvas, c2 = cc.getContext('2d');
+    const cw = cc.clientWidth, ch = cc.clientHeight;
+    if (cc.width !== cw * DPR) { cc.width = cw * DPR; cc.height = ch * DPR; }
+    c2.setTransform(DPR, 0, 0, DPR, 0, 0); c2.clearRect(0, 0, cw, ch);
+    c2.fillStyle = '#0a1020'; c2.fillRect(0, 0, cw, ch);
+    const X = az => (az / 360) * cw, Y = alt => ch - (alt / 90) * ch;
+    c2.strokeStyle = '#22304d'; c2.lineWidth = 1;
+    [90, 180, 270].forEach(a => { c2.beginPath(); c2.moveTo(X(a), 0); c2.lineTo(X(a), ch); c2.stroke(); });
+    c2.fillStyle = '#8b95ad'; c2.font = '9px system-ui';
+    ['N', 'E', 'S', 'W'].forEach((n, i) => c2.fillText(n, X(i * 90) + 2, 10));
+    // current view box
+    const fw = fov() / azScale(), fh = fov();
+    c2.strokeStyle = '#c9a15a'; c2.strokeRect(X(S.viewAz - fw / 2), Y(S.viewAlt + fh / 2), Math.max(3, fw / 360 * cw), Math.max(3, fh / 90 * ch));
+    // planets whose bearing is known
+    PLANETS.forEach(p => {
+      if (!(S.discovered[p.id] || (S.hints[p.id] && S.hints[p.id].direction))) return;
+      const pos = planetPos(p, S.hour, S.night); if (!pos) return;
+      c2.fillStyle = S.discovered[p.id] ? '#4fd39b' : '#e7c987';
+      c2.beginPath(); c2.arc(X(pos.az), Y(pos.alt), 3, 0, Math.PI * 2); c2.fill();
+    });
+  }
+
+  // ---------- Index ----------
+  function renderIndex() {
+    const found = PLANETS.filter(p => S.discovered[p.id]).length;
+    $('indexBar').style.width = (found / PLANETS.length * 100) + '%';
+    $('indexCount').textContent = `${found} of ${PLANETS.length} catalogued`;
+    const cards = $('cards'); cards.innerHTML = '';
+    PLANETS.forEach((p, i) => {
+      const known = !!S.discovered[p.id];
+      const hints = S.hints[p.id] || {};
+      const hintCount = HINT_KEYS.filter(k => hints[k]).length;
+      const el = document.createElement('button');
+      el.className = 'card' + (known ? '' : ' unknown');
+      el.innerHTML = known
+        ? `<div class="model">${svgOf(p)}</div><div class="name">${p.name}</div><div class="kind">${p.kind}</div><div class="flag">${S.obsCount[p.id] || 0} observation${S.obsCount[p.id] === 1 ? '' : 's'}</div>`
+        : `<div class="model">?</div><div class="name">Entry ${String(i + 1).padStart(2, '0')}</div><div class="kind">Uncatalogued</div><div class="flag hint">${hintCount ? hintCount + ' of 3 hints' : 'No hints yet'}</div>`;
+      el.addEventListener('click', () => openDetail(p));
+      cards.appendChild(el);
+    });
+    renderAlmanac();
+  }
+
+  function describeTime(p) {
+    const w = planetWindow(p);
+    const cadence = p.period === 1 ? 'every night' : p.period === 2 ? 'every other night' : `every ${p.period}rd night`;
+    return `Up ${fmtHour(w.rise)}–${fmtHour(w.set)}, highest around ${fmtHour(p.transit)}, ${cadence}.`;
+  }
+  function describeDirection(p) {
+    return `Look ${bearingLong(p.azCenter)} (bearing ~${Math.round(p.azCenter)}°), climbing to about ${Math.round(p.maxAlt)}° above the horizon.`;
+  }
+  function describeGear(p) {
+    const parts = [`mirror ${p.mag}`, `zoom ×${zoomNeededFor(p)}`];
+    if (p.needsFilter) parts.push('nebula filter');
+    return `Needs ${parts.join(', ')}.`;
+  }
+
+  function openDetail(p) {
+    const known = !!S.discovered[p.id];
+    const hints = S.hints[p.id] || (S.hints[p.id] = {});
+    const idx = PLANETS.indexOf(p) + 1;
+    const fact = (key, label, text) => {
+      const unlocked = known || hints[key];
+      const cost = hintCost(p, key);
+      return `<div class="fact"><div class="k">${label}</div><div class="v ${unlocked ? '' : 'locked'}">${unlocked ? text : 'Unknown'}</div>${unlocked ? '' : `<button class="pill buy" data-hint="${key}" ${S.credits < cost ? 'disabled' : ''}>Buy hint · ${cost}</button>`}</div>`;
+    };
+    const next = nextAppearance(p);
+    const nextText = next ? (next.night === S.night ? (S.hour >= next.rise ? 'Up right now' : `Rises tonight at ${fmtHour(next.rise)}`) : `Next: night ${next.night} at ${fmtHour(next.rise)}`) : 'Not expected soon';
+    const body = $('detailBody');
+    body.innerHTML = `<div class="detail-hero">
+        <div class="big ${known ? '' : 'unknown'}">${known ? svgOf(p) : '?'}</div>
+        <h2>${known ? p.name : `Entry ${String(idx).padStart(2, '0')}`}</h2>
+        <div class="kind">${known ? p.kind : 'Uncatalogued object'}</div></div>
+      ${known ? `<p class="lore">${p.lore}</p>` : ''}
+      <div class="facts">
+        ${fact('time', 'When', describeTime(p))}
+        ${fact('direction', 'Where', describeDirection(p))}
+        ${fact('gear', 'Gear', describeGear(p))}
+        ${(known || hints.time) ? `<div class="fact"><div class="k">Next</div><div class="v">${nextText}</div></div>` : ''}
+      </div>
+      ${known ? `<div class="stats"><div><b>${S.obsCount[p.id] || 0}</b>observations</div><div><b>${p.value}</b>credits each</div></div>` : ''}`;
+    body.querySelectorAll('[data-hint]').forEach(b => b.addEventListener('click', () => {
+      const key = b.dataset.hint, cost = hintCost(p, key);
+      if (S.credits < cost) return;
+      S.credits -= cost; hints[key] = true; save(); renderTop(); renderIndex(); openDetail(p);
+      toast('Hint added to the index');
+    }));
+    $('detail').classList.remove('hidden');
+  }
+
+  function renderAlmanac() {
+    const list = $('almanac'); list.innerHTML = '';
+    const rows = PLANETS.filter(p => S.discovered[p.id] || (S.hints[p.id] && S.hints[p.id].time))
+      .map(p => ({ p, next: nextAppearance(p) }))
+      .sort((a, b) => (a.next ? a.next.night * 100 + a.next.hour : 1e9) - (b.next ? b.next.night * 100 + b.next.hour : 1e9));
+    if (!rows.length) { list.innerHTML = '<div class="sub" style="padding:8px 4px">Discover a planet or buy a “When” hint to fill tonight’s almanac.</div>'; return; }
+    rows.forEach(({ p, next }) => {
+      const known = !!S.discovered[p.id];
+      const up = next && next.night === S.night && S.hour >= next.rise;
+      const soon = next && next.night === S.night && !up;
+      const el = document.createElement('div'); el.className = 'row' + (up ? ' up' : '');
+      const dirKnown = known || (S.hints[p.id] && S.hints[p.id].direction);
+      el.innerHTML = `<div class="mini">${known ? svgOf(p) : '<div class="card unknown" style="width:44px;height:44px;padding:0;border-radius:50%;font-family:var(--display);font-size:22px;color:var(--line)">?</div>'}</div>
+        <div class="grow"><div class="title">${known ? p.name : 'Entry ' + String(PLANETS.indexOf(p) + 1).padStart(2, '0')}<small>${dirKnown ? bearingName(p.azCenter) + ' · ' + Math.round(p.maxAlt) + '°' : ''}</small></div>
+        <div class="when">${next ? (next.night === S.night ? `${fmtHour(next.rise)} – ${fmtHour(next.set)} tonight` : `Night ${next.night}, ${fmtHour(next.rise)} – ${fmtHour(next.set)}`) : 'No pass soon'}</div></div>
+        <div class="status ${up ? 'up' : soon ? 'soon' : ''}">${up ? (S.observedNight[p.id] === S.night ? 'Logged' : 'Up now') : soon ? 'Later' : 'Waiting'}</div>`;
+      el.addEventListener('click', () => openDetail(p));
+      list.appendChild(el);
+    });
+  }
+
+  // ---------- Shop ----------
+  function renderShop() {
+    const shop = $('shop'); shop.innerHTML = '';
+    Object.entries(UPGRADES).forEach(([key, u]) => {
+      const lvl = S.up[key], maxed = lvl >= u.max, cost = maxed ? 0 : u.costs[lvl];
+      const binary = u.max === 2;
+      const el = document.createElement('div'); el.className = 'row';
+      el.innerHTML = `<div class="grow"><div class="title">${u.name}${binary ? '' : `<small>level ${lvl} / ${u.max}</small>`}</div>
+        <div class="desc">${u.desc}</div><div class="effect">${u.effect(lvl)}${!maxed && !binary ? ` → ${u.effect(lvl + 1)}` : ''}</div>
+        ${binary ? '' : `<div class="dots">${Array.from({ length: u.max }, (_, i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</div>`}</div>
+        <button class="pill ${maxed ? 'owned' : 'buy'}" ${maxed || S.credits < cost ? 'disabled' : ''}>${maxed ? (binary ? 'Fitted' : 'Max') : cost}</button>`;
+      el.querySelector('button').addEventListener('click', () => {
+        if (maxed || S.credits < cost) return;
+        S.credits -= cost; S.up[key] += 1; save();
+        if (key === 'chart') { $('chartBtn').classList.remove('hidden'); }
+        toast(`${u.name} upgraded`); renderTop(); renderShop(); renderIndex();
+      });
+      shop.appendChild(el);
+    });
+  }
+
+  // ---------- Toast ----------
+  let toastTimer;
+  function toast(text) { const t = $('toast'); t.textContent = text; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200); }
+
+  // ---------- Navigation ----------
+  let screen = 'telescope';
+  document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => {
+    screen = b.dataset.screen;
+    document.querySelectorAll('.navbtn').forEach(x => x.classList.toggle('active', x === b));
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + screen));
+    if (screen === 'index') { $('indexDot').classList.add('hidden'); renderIndex(); }
+    if (screen === 'shop') renderShop();
+    if (screen === 'telescope') resize();
+  }));
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+    $('cards').classList.toggle('hidden', t.dataset.tab !== 'cards');
+    $('almanac').classList.toggle('hidden', t.dataset.tab !== 'almanac');
+    if (t.dataset.tab === 'almanac') renderAlmanac();
+  }));
+  document.body.addEventListener('click', e => {
+    const c = e.target.closest('[data-close]'); if (c) $(c.dataset.close).classList.add('hidden');
+  });
+  $('speedBtn').addEventListener('click', () => { S.speed = S.speed === 1 ? 6 : S.speed === 6 ? 20 : 1; renderTop(); save(); });
+  $('endNight').addEventListener('click', () => { S.hour = NIGHT_END; });
+  let resetArmed = 0;
+  $('resetBtn').addEventListener('click', () => {
+    if (Date.now() - resetArmed < 4000) { S = defaultState(); save(); location.reload(); return; }
+    resetArmed = Date.now(); $('resetBtn').textContent = 'Tap again to erase';
+    setTimeout(() => { $('resetBtn').textContent = 'Reset progress'; }, 4000);
+  });
+  $('chartBtn').addEventListener('click', () => { S.showChart = !S.showChart; $('chart').classList.toggle('hidden', !S.showChart); save(); });
+  if (S.up.chart >= 2) { $('chartBtn').classList.remove('hidden'); $('chart').classList.toggle('hidden', !S.showChart); }
+
+  // zoom
+  function setZoom(i) { S.zoomIdx = clamp(i, 0, S.up.mag - 1); save(); }
+  $('zoomIn').addEventListener('click', () => { if (S.zoomIdx + 1 >= S.up.mag) { setMessage('Stronger eyepieces are sold in the Workshop.', 1500); } setZoom(S.zoomIdx + 1); });
+  $('zoomOut').addEventListener('click', () => setZoom(S.zoomIdx - 1));
+
+  // pan / pinch
+  const pointers = new Map(); let pinchStart = null;
+  canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinchStart = { d: Math.hypot(a.x - b.x, a.y - b.y), idx: S.zoomIdx }; } });
+  canvas.addEventListener('pointermove', e => {
+    if (!pointers.has(e.pointerId)) return;
+    const prev = pointers.get(e.pointerId); const cur = { x: e.clientX, y: e.clientY };
+    if (pointers.size === 1) {
+      const s = pxPerDeg();
+      S.viewAz = ((S.viewAz - (cur.x - prev.x) / (s * azScale())) % 360 + 360) % 360;
+      S.viewAlt = clamp(S.viewAlt + (cur.y - prev.y) / s, 0, 88);
+    }
+    pointers.set(e.pointerId, cur);
+    if (pointers.size === 2 && pinchStart) {
+      const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
+      const steps = Math.round(Math.log2(d / pinchStart.d) * 1.3);
+      setZoom(pinchStart.idx + steps);
+    }
+  });
+  const endPointer = e => { pointers.delete(e.pointerId); if (pointers.size < 2) pinchStart = null; save(); };
+  canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('wheel', e => { e.preventDefault(); setZoom(S.zoomIdx + (e.deltaY < 0 ? 1 : -1)); }, { passive: false });
+  window.addEventListener('keydown', e => {
+    const step = fov() / 12;
+    if (e.key === 'ArrowLeft') S.viewAz = (S.viewAz - step + 360) % 360;
+    if (e.key === 'ArrowRight') S.viewAz = (S.viewAz + step) % 360;
+    if (e.key === 'ArrowUp') S.viewAlt = clamp(S.viewAlt + step, 0, 88);
+    if (e.key === 'ArrowDown') S.viewAlt = clamp(S.viewAlt - step, 0, 88);
+    if (e.key === '+' || e.key === '=') setZoom(S.zoomIdx + 1);
+    if (e.key === '-') setZoom(S.zoomIdx - 1);
+  });
+  document.addEventListener('visibilitychange', () => { paused = document.hidden; last = performance.now(); save(); });
+
+  // ---------- Boot ----------
+  if (false && location.protocol.startsWith('http')) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
+  S.zoomIdx = clamp(S.zoomIdx, 0, S.up.mag - 1);
+  resize(); renderTop(); renderIndex(); renderShop();
+  if (!Object.keys(S.discovered).length && S.night === 1 && S.hour < 18.05) {
+    setMessage('Drag to sweep the sky. Two bright worlds are up in the south tonight.', 5000);
+  }
+  requestAnimationFrame(tick);
+})();
+
+</script>
+</body>
+</html>

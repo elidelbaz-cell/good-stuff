@@ -1,0 +1,11 @@
+{
+  "name": "Starfinder",
+  "short_name": "Starfinder",
+  "description": "Find every planet with your telescope. Upgrade your optics, read the almanac, complete the index.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070b14",
+  "theme_color": "#070b14",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

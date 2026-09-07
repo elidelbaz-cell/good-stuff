@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#070b14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Starfinder</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div class="credits"><span class="coin"></span><span id="credits">0</span></div>
+      <div class="clock"><span id="night">Night 1</span><span id="hour">18:00</span></div>
+      <button id="speedBtn" class="pill" title="Time speed">1×</button>
+    </header>
+
+    <main id="screens">
+      <!-- Telescope -->
+      <section id="screen-telescope" class="screen active">
+        <canvas id="sky"></canvas>
+        <div id="compass"><div id="compassTrack"></div><div class="compass-needle"></div></div>
+        <div id="readout">Az 150° · Alt 40°</div>
+        <div id="message"></div>
+        <div id="zoomCtl">
+          <button id="zoomOut" class="round">−</button>
+          <div id="zoomLabel">×1</div>
+          <button id="zoomIn" class="round">+</button>
+        </div>
+        <button id="chartBtn" class="pill ghost hidden">Chart</button>
+        <div id="chart" class="hidden"><canvas id="chartCanvas"></canvas></div>
+      </section>
+
+      <!-- Index -->
+      <section id="screen-index" class="screen">
+        <div class="index-head">
+          <h1>Planetary Index</h1>
+          <div class="progress"><div id="indexBar"></div></div>
+          <div id="indexCount" class="sub">0 of 12 catalogued</div>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-tab="cards">Catalogue</button>
+          <button class="tab" data-tab="almanac">Tonight</button>
+        </div>
+        <div id="cards" class="grid"></div>
+        <div id="almanac" class="list hidden"></div>
+      </section>
+
+      <!-- Shop -->
+      <section id="screen-shop" class="screen">
+        <div class="index-head">
+          <h1>Workshop</h1>
+          <div class="sub">Spend credits to see farther, steadier, and finer.</div>
+        </div>
+        <div id="shop" class="list"></div>
+        <div class="shop-foot">
+          <button id="endNight" class="pill ghost">Sleep until dawn</button>
+          <button id="resetBtn" class="pill danger">Reset progress</button>
+        </div>
+      </section>
+    </main>
+
+    <nav id="nav">
+      <button class="navbtn active" data-screen="telescope">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v4M12 16v4M4 12h4M16 12h4"/></svg>
+        <span>Telescope</span></button>
+      <button class="navbtn" data-screen="index">
+        <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+        <span>Index</span><i id="indexDot" class="dot hidden"></i></button>
+      <button class="navbtn" data-screen="shop">
+        <svg viewBox="0 0 24 24"><path d="M4 8h16l-1.5 11h-13z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+        <span>Workshop</span></button>
+    </nav>
+
+    <!-- Planet detail -->
+    <div id="detail" class="modal hidden">
+      <div class="sheet">
+        <button class="close" data-close="detail">×</button>
+        <div id="detailBody"></div>
+      </div>
+    </div>
+
+    <!-- Dawn / events -->
+    <div id="overlay" class="modal hidden">
+      <div class="sheet center">
+        <div id="overlayBody"></div>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+  </div>
+
+  <script src="planets.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1,3 +1,12 @@
+# good-stuff
+
+Two games live in this repo:
+
+- **[telescope-game/](telescope-game/)** — *Starfinder*, a mobile phone telescope game: find twelve invented planets at the right time and place, earn credits, upgrade your optics, complete the Planetary Index. Planet models are designed on a Claude Design canvas and used directly in the game.
+- **src/** — the first-person Roblox sword fighting game described below.
+
+---
+
 # First-Person Sword Fighting Roblox Game
 
 A first-person PvP sword fighting game with a spin-based progression system, special abilities, and two maps.

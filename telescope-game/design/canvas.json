@@ -1,0 +1,120 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1240,
+      "h": 1080,
+      "title": "Planetary Index sheet"
+    },
+    {
+      "file": "Aurelia.dc.html",
+      "x": 0,
+      "y": 1240,
+      "w": 480,
+      "h": 640,
+      "title": "Aurelia"
+    },
+    {
+      "file": "Thessaly.dc.html",
+      "x": 580,
+      "y": 1240,
+      "w": 480,
+      "h": 640,
+      "title": "Thessaly"
+    },
+    {
+      "file": "Marrow.dc.html",
+      "x": 1160,
+      "y": 1240,
+      "w": 480,
+      "h": 640,
+      "title": "Marrow"
+    },
+    {
+      "file": "Vespera.dc.html",
+      "x": 1740,
+      "y": 1240,
+      "w": 480,
+      "h": 640,
+      "title": "Vespera"
+    },
+    {
+      "file": "Kelthar.dc.html",
+      "x": 0,
+      "y": 2020,
+      "w": 480,
+      "h": 640,
+      "title": "Kelthar"
+    },
+    {
+      "file": "Cerule.dc.html",
+      "x": 580,
+      "y": 2020,
+      "w": 480,
+      "h": 640,
+      "title": "Cerule"
+    },
+    {
+      "file": "Nimbrel.dc.html",
+      "x": 1160,
+      "y": 2020,
+      "w": 480,
+      "h": 640,
+      "title": "Nimbrel"
+    },
+    {
+      "file": "Quillon.dc.html",
+      "x": 1740,
+      "y": 2020,
+      "w": 480,
+      "h": 640,
+      "title": "Quillon"
+    },
+    {
+      "file": "Ilvane.dc.html",
+      "x": 0,
+      "y": 2800,
+      "w": 480,
+      "h": 640,
+      "title": "Ilvane"
+    },
+    {
+      "file": "Orrun.dc.html",
+      "x": 580,
+      "y": 2800,
+      "w": 480,
+      "h": 640,
+      "title": "Orrun"
+    },
+    {
+      "file": "SableNine.dc.html",
+      "x": 1160,
+      "y": 2800,
+      "w": 480,
+      "h": 640,
+      "title": "Sable Nine"
+    },
+    {
+      "file": "PyrrhicCrown.dc.html",
+      "x": 1740,
+      "y": 2800,
+      "w": 480,
+      "h": 640,
+      "title": "Pyrrhic Crown"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "model-note",
+      "x": 1320,
+      "y": 0,
+      "w": 300,
+      "text": "Planet models for Starfinder.\nThe sheet above is the full set; each card below is one model at a larger size.\nEdit a model here and re-export it into planets.js to change it in the game."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

@@ -1,0 +1,244 @@
+/* Planet catalogue for Starfinder.
+ * Every model is an SVG (200x200 viewBox) drawn from gradients so it scales
+ * cleanly in the eyepiece, the index, and the design canvas.
+ * Sky mechanics per planet:
+ *   transit  - in-game hour (18..30, where 24 = midnight, 30 = 06:00) when the
+ *              planet is highest in the sky
+ *   halfSpan - hours either side of transit during which it is above the horizon
+ *   azCenter - compass bearing (deg) at transit; it drifts east->west across azSpread
+ *   maxAlt   - altitude (deg) at transit
+ *   period   - appears every N nights; offset picks which nights
+ *   size     - angular diameter in degrees (drives the zoom needed to resolve it)
+ *   mag      - faintness 1..5: telescope aperture level needed to see it
+ *   needsFilter - hidden inside a dust cloud unless the nebula filter is fitted
+ *   value    - credits per observation (discovery pays 3x)
+ */
+(function (root) {
+  'use strict';
+
+  function shade(id) {
+    return '<radialGradient id="' + id + '-sh" cx="0.32" cy="0.3" r="0.95">' +
+      '<stop offset="0.45" stop-color="#000" stop-opacity="0"/>' +
+      '<stop offset="1" stop-color="#000" stop-opacity="0.72"/></radialGradient>';
+  }
+
+  const PLANETS = [
+    {
+      id: 'aurelia', name: 'Aurelia', kind: 'Banded gas giant',
+      lore: 'A slow amber giant. Its storms take a hundred years to cross one band, and a pale oval has hung in its southern belt since the first sketches.',
+      transit: 21.5, halfSpan: 3.5, azCenter: 150, azSpread: 110, maxAlt: 48,
+      period: 1, offset: 0, size: 1.6, mag: 1, needsFilter: false, value: 40,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<linearGradient id="au-b" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#e8c986"/><stop offset="0.18" stop-color="#c98a3e"/>' +
+        '<stop offset="0.3" stop-color="#f1dba4"/><stop offset="0.42" stop-color="#b8702c"/>' +
+        '<stop offset="0.55" stop-color="#ecc98a"/><stop offset="0.66" stop-color="#a95f22"/>' +
+        '<stop offset="0.78" stop-color="#e9c48a"/><stop offset="0.9" stop-color="#c7853b"/>' +
+        '<stop offset="1" stop-color="#e6c48f"/></linearGradient>' +
+        '<clipPath id="au-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('au') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#au-b)"/>' +
+        '<g clip-path="url(#au-c)">' +
+        '<path d="M-10 78 Q60 70 120 80 T210 74 L210 88 Q140 92 80 84 T-10 92 Z" fill="#8f4a17" opacity="0.5"/>' +
+        '<path d="M-10 128 Q70 120 130 132 T210 126 L210 138 Q150 142 90 134 T-10 142 Z" fill="#8f4a17" opacity="0.45"/>' +
+        '<ellipse cx="128" cy="134" rx="22" ry="10" fill="#f7e7c3"/>' +
+        '<ellipse cx="128" cy="134" rx="14" ry="6" fill="#e0b071" opacity="0.7"/>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#au-sh)"/></svg>'
+    },
+    {
+      id: 'thessaly', name: 'Thessaly', kind: 'Ocean world',
+      lore: 'One shallow sea wraps the whole planet. Emerald archipelagos break the surface where old volcanoes still breathe.',
+      transit: 20.5, halfSpan: 3, azCenter: 240, azSpread: 90, maxAlt: 36,
+      period: 1, offset: 0, size: 1.0, mag: 1, needsFilter: false, value: 55,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="th-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#4fb7d8"/><stop offset="0.6" stop-color="#1d6fa5"/><stop offset="1" stop-color="#0d3a6b"/></radialGradient>' +
+        '<clipPath id="th-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('th') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#th-b)"/>' +
+        '<g clip-path="url(#th-c)" fill="#3f9a5a">' +
+        '<path d="M52 72 q18 -14 34 -4 q10 8 -2 18 q-14 10 -30 2 q-10 -6 -2 -16z"/>' +
+        '<path d="M118 118 q22 -10 36 6 q8 14 -10 20 q-22 4 -30 -8 q-4 -10 4 -18z"/>' +
+        '<path d="M80 140 q10 -6 18 2 q4 8 -6 10 q-12 0 -12 -12z"/>' +
+        '<path d="M140 62 q10 -4 14 4 q2 8 -8 8 q-10 -2 -6 -12z"/>' +
+        '</g>' +
+        '<g clip-path="url(#th-c)" fill="#fff" opacity="0.75">' +
+        '<path d="M20 100 q30 -18 70 -8 q30 8 60 -10 l0 8 q-30 16 -62 8 q-36 -8 -68 10z"/>' +
+        '<path d="M60 40 q20 -6 40 4 l-4 6 q-18 -8 -38 -2z"/>' +
+        '<path d="M100 160 q24 -10 50 -2 l-2 6 q-24 -6 -46 2z"/>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#th-sh)"/></svg>'
+    },
+    {
+      id: 'marrow', name: 'Marrow', kind: 'Cratered dwarf',
+      lore: 'Bone-white and airless. Every impact for four billion years is still written on its face.',
+      transit: 23, halfSpan: 4, azCenter: 95, azSpread: 120, maxAlt: 62,
+      period: 1, offset: 0, size: 0.55, mag: 2, needsFilter: false, value: 70,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="ma-b" cx="0.38" cy="0.36" r="0.8"><stop offset="0" stop-color="#f4f0e6"/><stop offset="0.7" stop-color="#c9c2b4"/><stop offset="1" stop-color="#8a8378"/></radialGradient>' +
+        '<clipPath id="ma-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('ma') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#ma-b)"/>' +
+        '<g clip-path="url(#ma-c)">' +
+        '<circle cx="70" cy="80" r="18" fill="#a59d90"/><circle cx="72" cy="78" r="13" fill="#d8d1c3"/>' +
+        '<circle cx="128" cy="118" r="26" fill="#a59d90"/><circle cx="131" cy="115" r="20" fill="#dcd5c7"/>' +
+        '<circle cx="106" cy="52" r="9" fill="#aaa294"/><circle cx="107" cy="51" r="6" fill="#d3ccbe"/>' +
+        '<circle cx="60" cy="140" r="12" fill="#a59d90"/><circle cx="62" cy="138" r="8" fill="#d6cfc1"/>' +
+        '<circle cx="150" cy="70" r="7" fill="#aaa294"/><circle cx="92" cy="160" r="6" fill="#aaa294"/>' +
+        '<circle cx="40" cy="104" r="5" fill="#aaa294"/>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#ma-sh)"/></svg>'
+    },
+    {
+      id: 'vespera', name: 'Vespera', kind: 'Ringed ice giant',
+      lore: 'Violet clouds under a wide, thin ring of shattered moon. Best seen low in the west just after the sky turns fully dark.',
+      transit: 19.5, halfSpan: 2.5, azCenter: 275, azSpread: 60, maxAlt: 26,
+      period: 1, offset: 0, size: 1.3, mag: 2, needsFilter: false, value: 90,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="ve-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#c9a6ff"/><stop offset="0.6" stop-color="#7d4fd6"/><stop offset="1" stop-color="#37206e"/></radialGradient>' +
+        '<linearGradient id="ve-r" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e9dcff" stop-opacity="0.15"/><stop offset="0.5" stop-color="#e9dcff" stop-opacity="0.9"/><stop offset="1" stop-color="#e9dcff" stop-opacity="0.15"/></linearGradient>' +
+        '<clipPath id="ve-c"><circle cx="100" cy="100" r="62"/></clipPath>' +
+        '<radialGradient id="ve-sh" cx="0.32" cy="0.3" r="0.95"><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.72"/></radialGradient></defs>' +
+        '<g transform="rotate(-18 100 100)">' +
+        '<path d="M2 100 a98 22 0 0 1 196 0" fill="none" stroke="url(#ve-r)" stroke-width="9"/>' +
+        '<circle cx="100" cy="100" r="62" fill="url(#ve-b)"/>' +
+        '<g clip-path="url(#ve-c)"><path d="M30 90 q40 -10 70 0 t70 -4 l0 8 q-30 6 -70 2 t-70 4z" fill="#fff" opacity="0.18"/></g>' +
+        '<circle cx="100" cy="100" r="62" fill="url(#ve-sh)"/>' +
+        '<path d="M2 100 a98 22 0 0 0 196 0" fill="none" stroke="url(#ve-r)" stroke-width="9"/>' +
+        '<path d="M14 100 a86 16 0 0 0 172 0" fill="none" stroke="#b79cf0" stroke-width="2" opacity="0.8"/>' +
+        '</g></svg>'
+    },
+    {
+      id: 'kelthar', name: 'Kelthar', kind: 'Lava world',
+      lore: 'A crust of black basalt split by rivers of light. It glows brightest on cold nights, which is when you should look.',
+      transit: 26, halfSpan: 2.5, azCenter: 40, azSpread: 70, maxAlt: 30,
+      period: 2, offset: 1, size: 0.7, mag: 2, needsFilter: false, value: 120,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="ke-b" cx="0.4" cy="0.38" r="0.8"><stop offset="0" stop-color="#4a3a36"/><stop offset="0.7" stop-color="#231a18"/><stop offset="1" stop-color="#0c0908"/></radialGradient>' +
+        '<radialGradient id="ke-g" cx="0.5" cy="0.5" r="0.5"><stop offset="0.7" stop-color="#ff7a1a" stop-opacity="0"/><stop offset="1" stop-color="#ff6a00" stop-opacity="0.35"/></radialGradient>' +
+        '<clipPath id="ke-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('ke') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#ke-b)"/>' +
+        '<g clip-path="url(#ke-c)" fill="none" stroke-linecap="round">' +
+        '<g stroke="#ff9a2e" stroke-width="6" opacity="0.5"><path d="M30 70 q30 20 50 10 t40 30 q20 10 50 0"/><path d="M60 150 q20 -30 50 -20 t50 -30"/><path d="M110 40 q-10 30 20 40"/></g>' +
+        '<g stroke="#ffd166" stroke-width="2.2"><path d="M30 70 q30 20 50 10 t40 30 q20 10 50 0"/><path d="M60 150 q20 -30 50 -20 t50 -30"/><path d="M110 40 q-10 30 20 40"/><path d="M50 110 q10 -8 22 4"/></g>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#ke-g)"/><circle cx="100" cy="100" r="90" fill="url(#ke-sh)"/></svg>'
+    },
+    {
+      id: 'cerule', name: 'Cerule', kind: 'Cloud giant',
+      lore: 'Deep blue with a single white spiral that never unwinds. Sailors on Thessaly are said to steer by it.',
+      transit: 24.5, halfSpan: 3, azCenter: 180, azSpread: 100, maxAlt: 70,
+      period: 1, offset: 0, size: 1.1, mag: 3, needsFilter: false, value: 130,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="ce-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#6fb0ff"/><stop offset="0.6" stop-color="#2358c9"/><stop offset="1" stop-color="#0f2a72"/></radialGradient>' +
+        '<clipPath id="ce-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('ce') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#ce-b)"/>' +
+        '<g clip-path="url(#ce-c)" fill="#fff">' +
+        '<path d="M-10 62 q60 -14 110 0 t110 -6 l0 10 q-50 8 -110 0 t-110 6z" opacity="0.5"/>' +
+        '<path d="M-10 140 q60 -10 110 2 t110 -4 l0 8 q-50 6 -110 0 t-110 4z" opacity="0.4"/>' +
+        '<path d="M118 100 m-26 0 a26 26 0 1 1 26 26 a18 18 0 1 0 -18 -18 a10 10 0 1 1 10 10" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.9"/>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#ce-sh)"/></svg>'
+    },
+    {
+      id: 'nimbrel', name: 'Nimbrel', kind: 'Aurora ice world',
+      lore: 'A frozen globe crowned by ribbons of green fire. The auroras flare when its star throws a tantrum, roughly every other night.',
+      transit: 27.5, halfSpan: 2.5, azCenter: 60, azSpread: 60, maxAlt: 44,
+      period: 2, offset: 0, size: 0.6, mag: 3, needsFilter: false, value: 160,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="ni-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#f2fbff"/><stop offset="0.55" stop-color="#b9dcef"/><stop offset="1" stop-color="#5e8fb0"/></radialGradient>' +
+        '<linearGradient id="ni-a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4cf2b0" stop-opacity="0"/><stop offset="0.5" stop-color="#4cf2b0" stop-opacity="0.9"/><stop offset="1" stop-color="#7ad0ff" stop-opacity="0"/></linearGradient>' +
+        '<clipPath id="ni-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('ni') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#ni-b)"/>' +
+        '<g clip-path="url(#ni-c)">' +
+        '<path d="M40 120 q20 -30 50 -20 t60 -10" fill="none" stroke="#dff3ff" stroke-width="10" opacity="0.6"/>' +
+        '<path d="M20 60 q40 -30 80 -14 t80 -8" fill="none" stroke="url(#ni-a)" stroke-width="14" stroke-linecap="round"/>' +
+        '<path d="M30 42 q40 -22 80 -10 t70 -4" fill="none" stroke="url(#ni-a)" stroke-width="6" stroke-linecap="round" opacity="0.8"/>' +
+        '<ellipse cx="100" cy="24" rx="60" ry="14" fill="#fff" opacity="0.5"/>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#ni-sh)"/></svg>'
+    },
+    {
+      id: 'quillon', name: 'Quillon', kind: 'Triple-ringed world',
+      lore: 'Rust-red under three crisp rings and a pair of shepherd moons. The rings open widest around midnight.',
+      transit: 24, halfSpan: 3, azCenter: 320, azSpread: 80, maxAlt: 40,
+      period: 1, offset: 0, size: 0.9, mag: 3, needsFilter: true, value: 190,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="qu-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#f0a072"/><stop offset="0.6" stop-color="#b5522a"/><stop offset="1" stop-color="#4f1f10"/></radialGradient>' +
+        '<radialGradient id="qu-sh" cx="0.32" cy="0.3" r="0.95"><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.72"/></radialGradient></defs>' +
+        '<g transform="rotate(22 100 100)">' +
+        '<g fill="none" opacity="0.85"><path d="M8 100 a92 26 0 0 1 184 0" stroke="#f3d9b8" stroke-width="5"/><path d="M18 100 a82 22 0 0 1 164 0" stroke="#d9a67a" stroke-width="3"/><path d="M28 100 a72 18 0 0 1 144 0" stroke="#f3d9b8" stroke-width="4"/></g>' +
+        '<circle cx="100" cy="100" r="54" fill="url(#qu-b)"/>' +
+        '<circle cx="100" cy="100" r="54" fill="url(#qu-sh)"/>' +
+        '<g fill="none" opacity="0.95"><path d="M8 100 a92 26 0 0 0 184 0" stroke="#f3d9b8" stroke-width="5"/><path d="M18 100 a82 22 0 0 0 164 0" stroke="#d9a67a" stroke-width="3"/><path d="M28 100 a72 18 0 0 0 144 0" stroke="#f3d9b8" stroke-width="4"/></g>' +
+        '<circle cx="30" cy="84" r="5" fill="#e7d3bd"/><circle cx="176" cy="112" r="4" fill="#cdb69b"/>' +
+        '</g></svg>'
+    },
+    {
+      id: 'ilvane', name: 'Ilvane', kind: 'Storm world',
+      lore: 'One hurricane the size of a continent stares back at whoever finds it. It hides inside the dust of the Weaver Cloud.',
+      transit: 22, halfSpan: 2, azCenter: 205, azSpread: 50, maxAlt: 55,
+      period: 1, offset: 0, size: 0.75, mag: 4, needsFilter: true, value: 230,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="il-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#8ee6c8"/><stop offset="0.6" stop-color="#1f8f7a"/><stop offset="1" stop-color="#0b3f3a"/></radialGradient>' +
+        '<radialGradient id="il-e" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#05201f"/><stop offset="0.35" stop-color="#0d5a4f"/><stop offset="0.6" stop-color="#bff5e6"/><stop offset="1" stop-color="#bff5e6" stop-opacity="0"/></radialGradient>' +
+        '<clipPath id="il-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('il') + '</defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#il-b)"/>' +
+        '<g clip-path="url(#il-c)">' +
+        '<path d="M-10 60 q60 10 110 -6 t110 4 l0 8 q-50 -8 -110 6 t-110 -4z" fill="#dffaf0" opacity="0.35"/>' +
+        '<path d="M-10 150 q60 -10 110 4 t110 -2 l0 8 q-50 -6 -110 0 t-110 -2z" fill="#dffaf0" opacity="0.3"/>' +
+        '<ellipse cx="92" cy="104" rx="40" ry="30" fill="url(#il-e)"/>' +
+        '<path d="M52 104 q20 -46 80 -30" fill="none" stroke="#e9fff7" stroke-width="4" stroke-linecap="round" opacity="0.7"/>' +
+        '<path d="M132 104 q-20 46 -80 30" fill="none" stroke="#e9fff7" stroke-width="4" stroke-linecap="round" opacity="0.7"/>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#il-sh)"/></svg>'
+    },
+    {
+      id: 'orrun', name: 'Orrun', kind: 'Contact binary',
+      lore: 'Two rocky worlds that fell into each other and never let go. They tumble once every nine hours, so the shape changes as you watch.',
+      transit: 28.5, halfSpan: 1.8, azCenter: 110, azSpread: 45, maxAlt: 24,
+      period: 3, offset: 2, size: 0.45, mag: 4, needsFilter: false, value: 280,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="or-a" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#d9c7b3"/><stop offset="0.7" stop-color="#8f7660"/><stop offset="1" stop-color="#3f3128"/></radialGradient>' +
+        '<radialGradient id="or-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#c9b39d"/><stop offset="0.7" stop-color="#7c644f"/><stop offset="1" stop-color="#33271f"/></radialGradient>' +
+        '<radialGradient id="or-sh" cx="0.32" cy="0.3" r="0.95"><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.7"/></radialGradient></defs>' +
+        '<g transform="rotate(-28 100 100)">' +
+        '<circle cx="128" cy="100" r="40" fill="url(#or-b)"/>' +
+        '<circle cx="72" cy="100" r="52" fill="url(#or-a)"/>' +
+        '<path d="M108 66 q14 16 14 34 t-14 34 q4 -34 0 -68z" fill="#5a4839" opacity="0.6"/>' +
+        '<circle cx="60" cy="86" r="10" fill="#6e5947" opacity="0.7"/><circle cx="62" cy="84" r="7" fill="#b9a48d"/>' +
+        '<circle cx="84" cy="124" r="7" fill="#6e5947" opacity="0.7"/><circle cx="85" cy="123" r="4.5" fill="#b9a48d"/>' +
+        '<circle cx="138" cy="112" r="8" fill="#5f4c3c" opacity="0.7"/><circle cx="139" cy="111" r="5" fill="#a89178"/>' +
+        '<circle cx="72" cy="100" r="52" fill="url(#or-sh)"/><circle cx="128" cy="100" r="40" fill="url(#or-sh)" opacity="0.9"/>' +
+        '</g></svg>'
+    },
+    {
+      id: 'sable', name: 'Sable Nine', kind: 'Dark bioluminescent world',
+      lore: 'Almost perfectly black. Only the largest mirrors catch the teal veins of something alive glowing under its ice.',
+      transit: 25, halfSpan: 2.2, azCenter: 140, azSpread: 60, maxAlt: 52,
+      period: 2, offset: 1, size: 0.65, mag: 5, needsFilter: false, value: 340,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="sa-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#2a3038"/><stop offset="0.7" stop-color="#0f1216"/><stop offset="1" stop-color="#040506"/></radialGradient>' +
+        '<clipPath id="sa-c"><circle cx="100" cy="100" r="90"/></clipPath>' +
+        '<radialGradient id="sa-sh" cx="0.32" cy="0.3" r="0.95"><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.6"/></radialGradient></defs>' +
+        '<circle cx="100" cy="100" r="90" fill="url(#sa-b)"/>' +
+        '<g clip-path="url(#sa-c)" fill="none" stroke-linecap="round">' +
+        '<g stroke="#2ee6c5" stroke-width="7" opacity="0.25"><path d="M40 60 q30 30 20 60 t30 40"/><path d="M60 40 q40 20 70 10 t40 30"/><path d="M90 100 q30 -10 40 30 t30 20"/></g>' +
+        '<g stroke="#8ffff0" stroke-width="1.8"><path d="M40 60 q30 30 20 60 t30 40"/><path d="M60 40 q40 20 70 10 t40 30"/><path d="M90 100 q30 -10 40 30 t30 20"/><path d="M70 120 q10 10 30 6"/><path d="M120 60 q6 12 -4 22"/></g>' +
+        '<g fill="#c9fff7"><circle cx="60" cy="90" r="2"/><circle cx="130" cy="130" r="2.4"/><circle cx="96" cy="150" r="1.6"/><circle cx="150" cy="70" r="1.8"/></g>' +
+        '</g><circle cx="100" cy="100" r="90" fill="url(#sa-sh)"/><circle cx="100" cy="100" r="89" fill="none" stroke="#3b4652" stroke-width="1.5"/></svg>'
+    },
+    {
+      id: 'pyrrhic', name: 'Pyrrhic Crown', kind: 'Ember rogue',
+      lore: 'A planet that lost its star and kept burning anyway. It wears a corona of its own boiling atmosphere and passes only once in three nights, just before dawn.',
+      transit: 29, halfSpan: 1.5, azCenter: 80, azSpread: 40, maxAlt: 18,
+      period: 3, offset: 0, size: 0.5, mag: 5, needsFilter: true, value: 420,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="py-b" cx="0.4" cy="0.38" r="0.8"><stop offset="0" stop-color="#ffd36b"/><stop offset="0.5" stop-color="#e2531c"/><stop offset="1" stop-color="#5a0f0a"/></radialGradient>' +
+        '<radialGradient id="py-h" cx="0.5" cy="0.5" r="0.5"><stop offset="0.6" stop-color="#ff8a1f" stop-opacity="0.55"/><stop offset="1" stop-color="#ff8a1f" stop-opacity="0"/></radialGradient>' +
+        '<clipPath id="py-c"><circle cx="100" cy="100" r="58"/></clipPath>' +
+        '<radialGradient id="py-sh" cx="0.32" cy="0.3" r="0.95"><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.6"/></radialGradient></defs>' +
+        '<circle cx="100" cy="100" r="98" fill="url(#py-h)"/>' +
+        '<g fill="#ffb347" opacity="0.85">' +
+        '<path d="M100 8 l7 34 l-14 0z"/><path d="M100 192 l7 -34 l-14 0z"/><path d="M8 100 l34 -7 l0 14z"/><path d="M192 100 l-34 -7 l0 14z"/>' +
+        '<path d="M35 35 l29 19 l-10 10z"/><path d="M165 165 l-29 -19 l10 -10z"/><path d="M165 35 l-19 29 l-10 -10z"/><path d="M35 165 l19 -29 l10 10z"/>' +
+        '</g>' +
+        '<circle cx="100" cy="100" r="58" fill="url(#py-b)"/>' +
+        '<g clip-path="url(#py-c)" fill="#ffe9a8" opacity="0.7"><path d="M50 90 q20 -10 40 4 t50 -6 l0 6 q-30 8 -50 2 t-40 0z"/><path d="M60 126 q30 -6 60 4 l0 5 q-30 -6 -60 0z"/></g>' +
+        '<circle cx="100" cy="100" r="58" fill="url(#py-sh)"/></svg>'
+    }
+  ];
+
+  root.PLANETS = PLANETS;
+  if (typeof module !== 'undefined' && module.exports) module.exports = PLANETS;
+})(typeof window !== 'undefined' ? window : globalThis);
