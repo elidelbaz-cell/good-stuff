@@ -10,7 +10,7 @@
   const NIGHT_END = 30;               // 06:00 next morning
   const REAL_SECONDS_PER_HOUR = 30;   // one game hour of night lasts this long at 1x
   const FOLLOW_RATE = [0, 1.5, 3, 5, 12]; // how strongly the mount follows a locked planet, by tracking level
-  const ZOOMS = [1, 2, 4, 8, 16, 32];
+  const ZOOMS = [1, 2, 4, 8, 16, 32, 64, 128, 256];
   const BASE_FOV = 60;                // degrees across the eyepiece at 1x
   const OBS_SECONDS = 3;              // hold the planet centred this long
   const DAWN_GRANT = 60;
@@ -20,8 +20,8 @@
     aperture: { name: 'Mirror', unit: 'aperture', max: 5, costs: [0, 150, 400, 900, 2000],
       desc: 'A wider mirror gathers more light and shows fainter worlds.',
       effect: l => `Sees objects of faintness ${l} and below` },
-    mag: { name: 'Eyepieces', unit: 'magnification', max: 6, costs: [0, 100, 250, 600, 1200, 2500],
-      desc: 'Stronger eyepieces resolve small planets into discs.',
+    mag: { name: 'Eyepieces', unit: 'magnification', max: 9, costs: [0, 100, 250, 600, 1200, 2000, 3000, 4500, 6500],
+      desc: 'Stronger eyepieces resolve small planets into discs, then fill the eyepiece with them.',
       effect: l => `Zoom up to ×${ZOOMS[l - 1]}` },
     tracking: { name: 'Mount', unit: 'tracking', max: 4, costs: [0, 120, 350, 800],
       desc: 'A motorised mount steadies the view and cancels drift.',
@@ -73,11 +73,26 @@
   function mulberry(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
   // ---------- Sky model ----------
+  // Stars are points of light, never discs: they differ by colour class, brightness,
+  // twinkle and (for the bright ones) diffraction spikes. A band of faint stars
+  // runs across the sky like a galaxy seen edge-on, with a few clusters and doubles.
+  const STAR_RGB = { O: [168, 190, 255], A: [224, 232, 255], G: [255, 246, 222], K: [255, 214, 160], M: [255, 168, 130] };
+  const bandAlt = az => 48 + 32 * Math.sin(rad(az - 20));
   const STARS = (() => {
     const r = mulberry(20260907), out = [];
-    for (let i = 0; i < 2600; i++) {
-      out.push({ az: r() * 360, alt: Math.asin(r()) * 180 / Math.PI, m: r(), tw: r() * Math.PI * 2, warm: r() });
+    const gauss = () => r() + r() + r() - 1.5;
+    const push = (az, alt, m) => {
+      alt = clamp(alt, 0.5, 89.5); az = ((az % 360) + 360) % 360;
+      const c = r(); const cls = c < 0.05 ? 'O' : c < 0.22 ? 'A' : c < 0.58 ? 'G' : c < 0.86 ? 'K' : 'M';
+      out.push({ az, alt, m, tw: r() * Math.PI * 2, cls, rgb: STAR_RGB[cls] });
+    };
+    for (let i = 0; i < 2400; i++) push(r() * 360, Math.asin(r()) * 180 / Math.PI, Math.pow(r(), 2.2));
+    for (let i = 0; i < 2600; i++) { const az = r() * 360; push(az, bandAlt(az) + gauss() * 9, Math.pow(r(), 3) * 0.55); }
+    for (let k = 0; k < 7; k++) {
+      const caz = r() * 360, calt = 12 + r() * 60, n = 25 + Math.floor(r() * 30);
+      for (let j = 0; j < n; j++) push(caz + gauss() * 1.3 / Math.max(0.3, Math.cos(rad(calt))), calt + gauss() * 1.3, Math.pow(r(), 1.6) * 0.75);
     }
+    for (let k = 0; k < 12; k++) { const az = r() * 360, alt = 8 + r() * 70; push(az, alt, 0.7 + r() * 0.3); push(az + 0.03 + r() * 0.05, alt + 0.02, 0.45 + r() * 0.3); }
     return out;
   })();
   const DUST = [
@@ -126,8 +141,27 @@
   }
 
   // ---------- Planet images ----------
-  const IMG = {};
-  PLANETS.forEach(p => { const im = new Image(); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(p.svg); IMG[p.id] = im; });
+  // The eyepiece can zoom until a planet is larger than the screen, so models are
+  // rasterised on demand at the size bucket the current zoom needs.
+  const SPRITES = {};
+  function spriteImage(p, bucket) {
+    const key = p.id + ':' + bucket;
+    if (!SPRITES[key]) {
+      const im = new Image();
+      im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(p.svg.replace('<svg ', `<svg width="${bucket}" height="${bucket}" `));
+      SPRITES[key] = im;
+    }
+    return SPRITES[key];
+  }
+  const BUCKETS = [256, 1024, 2048];
+  function sprite(p, d) {
+    const want = d <= 200 ? 256 : d <= 900 ? 1024 : 2048;
+    const im = spriteImage(p, want);
+    if (im.complete && im.naturalWidth) return im;
+    for (const b of BUCKETS) { const f = SPRITES[p.id + ':' + b]; if (f && f.complete && f.naturalWidth) return f; }
+    return null;
+  }
+  PLANETS.forEach(p => spriteImage(p, 256));
 
   // ---------- Canvas / telescope ----------
   const canvas = $('sky'), ctx = canvas.getContext('2d');
@@ -152,6 +186,40 @@
 
   // observation state
   let obs = { id: null, t: 0 };
+  // slew: the mount swings to a tapped planet and picks a zoom that frames it
+  let slew = null;
+  function fitZoomIdx(p) {
+    let idx = 0;
+    for (let i = 0; i < S.up.mag; i++) { if (p.size * (2 * R) / (BASE_FOV / ZOOMS[i]) <= 2 * R * 0.62) idx = i; }
+    return idx;
+  }
+  function planetAt(x, y) {
+    let best = null, bestD = Infinity;
+    for (const p of PLANETS) {
+      const pos = planetPos(p, S.hour, S.night); if (!pos) continue;
+      const st = planetStatus(p, pos);
+      if (!st.apertureOk && !st.glimmer) continue;
+      const pt = project(pos.az, pos.alt), dist = Math.hypot(pt.x - x, pt.y - y);
+      if (dist <= Math.max(28, st.d / 2) && dist < bestD) { best = p; bestD = dist; }
+    }
+    return best;
+  }
+  function startSlew(p) {
+    slew = { id: p.id, t: 0, zoomIdx: fitZoomIdx(p), fromZoom: S.zoomIdx };
+    setMessage(S.discovered[p.id] ? `Slewing to ${p.name}…` : 'Slewing to target…', 1200);
+  }
+  function updateSlew(dt) {
+    if (!slew) return;
+    const p = PLANETS.find(q => q.id === slew.id), pos = planetPos(p, S.hour, S.night);
+    if (!pos || pointers.size) { slew = null; return; }
+    slew.t = Math.min(1, slew.t + dt / 0.7);
+    const k = Math.min(1, dt * 9);
+    S.viewAz = ((S.viewAz + wrap180(pos.az - S.viewAz) * k) % 360 + 360) % 360;
+    S.viewAlt = clamp(S.viewAlt + (pos.alt - S.viewAlt) * k, 0, 88);
+    const zi = Math.round(slew.fromZoom + (slew.zoomIdx - slew.fromZoom) * slew.t);
+    if (zi !== S.zoomIdx) setZoom(zi);
+    if (slew.t >= 1) { slew = null; save(); }
+  }
   let msg = { text: '', until: 0 };
   function setMessage(text, ms) { msg.text = text; msg.until = performance.now() + (ms || 1800); }
 
@@ -192,14 +260,40 @@
       ctx.fillStyle = dg; ctx.beginPath(); ctx.arc(c.x, c.y, rr, 0, Math.PI * 2); ctx.fill();
     });
     // stars
-    const faintCut = z >= 8 ? 0 : z >= 4 ? 0.25 : z >= 2 ? 0.45 : 0.6;
+    const faintCut = z >= 8 ? 0 : z >= 4 ? 0.2 : z >= 2 ? 0.4 : 0.55;
+    const seeing = 1 + Math.log2(z) * 0.06;
+    if (z <= 4) {
+      // soft glow along the star band
+      ctx.globalCompositeOperation = 'lighter';
+      for (let a = -half / azScale(); a <= half / azScale(); a += 6) {
+        const az = S.viewAz + a, alt = bandAlt(az);
+        if (Math.abs(alt - S.viewAlt) > half + 14) continue;
+        const c = project(az, alt), rr = 14 * s;
+        const bg = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, rr);
+        bg.addColorStop(0, 'rgba(150,160,210,0.07)'); bg.addColorStop(1, 'rgba(150,160,210,0)');
+        ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(c.x, c.y, rr, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
     for (const st of STARS) {
       if (st.m < faintCut) continue;
       if (Math.abs(wrap180(st.az - S.viewAz)) > half / azScale() || Math.abs(st.alt - S.viewAlt) > half) continue;
       const pt = project(st.az, st.alt);
-      const tw = 0.75 + 0.25 * Math.sin(now / 600 + st.tw);
-      const size = (0.6 + st.m * 1.6) * tw;
-      ctx.fillStyle = st.warm > 0.8 ? `rgba(255,220,180,${0.5 + st.m * 0.5})` : st.warm < 0.15 ? `rgba(190,210,255,${0.5 + st.m * 0.5})` : `rgba(240,240,255,${0.45 + st.m * 0.55})`;
+      const lowSky = 1 - st.alt / 90;
+      const tw = 1 - (0.12 + 0.3 * lowSky) * (0.5 + 0.5 * Math.sin(now / (380 + st.tw * 90) + st.tw * 7));
+      const size = (0.5 + st.m * 2.1) * seeing * tw;
+      const [cr, cg, cb] = st.rgb, alpha = (0.35 + st.m * 0.65) * tw;
+      if (st.m > 0.72) {
+        const gr = size * 2.6;
+        const gl = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, gr);
+        gl.addColorStop(0, `rgba(${cr},${cg},${cb},${alpha * 0.4})`); gl.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+        ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(pt.x, pt.y, gr, 0, Math.PI * 2); ctx.fill();
+        if (z >= 4) {
+          const L = size * 6; ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha * 0.35})`; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(pt.x - L, pt.y); ctx.lineTo(pt.x + L, pt.y); ctx.moveTo(pt.x, pt.y - L); ctx.lineTo(pt.x, pt.y + L); ctx.stroke();
+        }
+      }
+      ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`;
       ctx.beginPath(); ctx.arc(pt.x, pt.y, size, 0, Math.PI * 2); ctx.fill();
     }
     // planets
@@ -231,10 +325,10 @@
         if (inLock) feedback = 'A steady point that does not twinkle. Zoom in to resolve it.';
         continue;
       }
-      const im = IMG[p.id];
-      if (im.complete) {
+      const im = sprite(p, st.d);
+      if (im) {
         ctx.save();
-        ctx.shadowColor = 'rgba(255,240,220,0.35)'; ctx.shadowBlur = st.d * 0.25;
+        ctx.shadowColor = 'rgba(255,240,220,0.35)'; ctx.shadowBlur = Math.min(24, st.d * 0.25);
         ctx.drawImage(im, pt.x - st.d / 2, pt.y - st.d / 2, st.d, st.d);
         ctx.restore();
       }
@@ -323,11 +417,12 @@
       // drift + shake
       const tr = S.up.tracking;
       if (tr < 4 && screen === 'telescope') S.viewAz = (S.viewAz + dtReal * 0.05 / tr) % 360;
-      const amp = (tr >= 4 ? 0.004 : 0.06 / tr) * pxPerDeg();
+      const amp = Math.min(22, (tr >= 4 ? 0.004 : 0.06 / tr) * pxPerDeg());
       shake.x = Math.sin(now / 130) * amp * 0.6 + Math.sin(now / 47) * amp * 0.4;
       shake.y = Math.cos(now / 170) * amp * 0.6 + Math.sin(now / 61) * amp * 0.4;
     }
     if (screen === 'telescope') {
+      if (!paused) updateSlew(dtReal);
       drawSky(now, paused ? 0 : dtReal);
       renderReadout();
       if (S.up.chart >= 2 && S.showChart) drawChart();
@@ -547,15 +642,27 @@
 
   // zoom
   function setZoom(i) { S.zoomIdx = clamp(i, 0, S.up.mag - 1); save(); }
-  $('zoomIn').addEventListener('click', () => { if (S.zoomIdx + 1 >= S.up.mag) { setMessage('Stronger eyepieces are sold in the Workshop.', 1500); } setZoom(S.zoomIdx + 1); });
-  $('zoomOut').addEventListener('click', () => setZoom(S.zoomIdx - 1));
+  function stepZoom(dir) {
+    if (dir > 0 && S.zoomIdx + 1 >= S.up.mag) setMessage('Stronger eyepieces are sold in the Workshop.', 1500);
+    setZoom(S.zoomIdx + dir);
+  }
+  // Tap steps one level; press and hold runs through the whole range.
+  [['zoomIn', 1], ['zoomOut', -1]].forEach(([id, dir]) => {
+    const btn = $(id); let timer = null, repeat = null;
+    const stop = () => { clearTimeout(timer); clearInterval(repeat); timer = repeat = null; };
+    btn.addEventListener('pointerdown', e => {
+      e.preventDefault(); slew = null; stepZoom(dir);
+      timer = setTimeout(() => { repeat = setInterval(() => stepZoom(dir), 160); }, 400);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, stop));
+  });
 
   // pan / pinch
   const pointers = new Map(); let pinchStart = null;
-  canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinchStart = { d: Math.hypot(a.x - b.x, a.y - b.y), idx: S.zoomIdx }; } });
+  canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now() }); slew = null; if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinchStart = { d: Math.hypot(a.x - b.x, a.y - b.y), idx: S.zoomIdx }; } });
   canvas.addEventListener('pointermove', e => {
     if (!pointers.has(e.pointerId)) return;
-    const prev = pointers.get(e.pointerId); const cur = { x: e.clientX, y: e.clientY };
+    const prev = pointers.get(e.pointerId); const cur = { x: e.clientX, y: e.clientY, sx: prev.sx, sy: prev.sy, t: prev.t };
     if (pointers.size === 1) {
       const s = pxPerDeg();
       S.viewAz = ((S.viewAz - (cur.x - prev.x) / (s * azScale())) % 360 + 360) % 360;
@@ -568,7 +675,16 @@
       setZoom(pinchStart.idx + steps);
     }
   });
-  const endPointer = e => { pointers.delete(e.pointerId); if (pointers.size < 2) pinchStart = null; save(); };
+  const endPointer = e => {
+    const start = pointers.get(e.pointerId);
+    pointers.delete(e.pointerId); if (pointers.size < 2) pinchStart = null;
+    if (start && e.type === 'pointerup' && !pointers.size && Math.hypot(e.clientX - start.sx, e.clientY - start.sy) < 8 && performance.now() - start.t < 350) {
+      const rect = canvas.getBoundingClientRect();
+      const target = planetAt(e.clientX - rect.left, e.clientY - rect.top);
+      if (target) startSlew(target);
+    }
+    save();
+  };
   canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('wheel', e => { e.preventDefault(); setZoom(S.zoomIdx + (e.deltaY < 0 ? 1 : -1)); }, { passive: false });
   window.addEventListener('keydown', e => {
@@ -587,7 +703,7 @@
   S.zoomIdx = clamp(S.zoomIdx, 0, S.up.mag - 1);
   resize(); renderTop(); renderIndex(); renderShop();
   if (!Object.keys(S.discovered).length && S.night === 1 && S.hour < 18.05) {
-    setMessage('Drag to sweep the sky. Two bright worlds are up in the south tonight.', 5000);
+    setMessage('Drag to sweep the sky, tap a planet to swing onto it. Two bright worlds are up in the south tonight.', 6000);
   }
   requestAnimationFrame(tick);
 })();

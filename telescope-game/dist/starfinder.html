@@ -275,19 +275,20 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
       transit: 21.5, halfSpan: 3.5, azCenter: 150, azSpread: 110, maxAlt: 48,
       period: 1, offset: 0, size: 1.6, mag: 1, needsFilter: false, value: 40,
       svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
-        '<linearGradient id="au-b" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0" stop-color="#e8c986"/><stop offset="0.18" stop-color="#c98a3e"/>' +
-        '<stop offset="0.3" stop-color="#f1dba4"/><stop offset="0.42" stop-color="#b8702c"/>' +
-        '<stop offset="0.55" stop-color="#ecc98a"/><stop offset="0.66" stop-color="#a95f22"/>' +
-        '<stop offset="0.78" stop-color="#e9c48a"/><stop offset="0.9" stop-color="#c7853b"/>' +
-        '<stop offset="1" stop-color="#e6c48f"/></linearGradient>' +
+        '<linearGradient id="au-b" x1="0" y1="0" x2="0" y2="1" gradientTransform="rotate(-28 0.5 0.5)">' +
+        '<stop offset="0" stop-color="#6b3a1a"/><stop offset="0.14" stop-color="#e8c986"/>' +
+        '<stop offset="0.26" stop-color="#c47a2c"/><stop offset="0.36" stop-color="#f6e3b4"/>' +
+        '<stop offset="0.5" stop-color="#a9581c"/><stop offset="0.62" stop-color="#f1d39a"/>' +
+        '<stop offset="0.74" stop-color="#c98a3e"/><stop offset="0.88" stop-color="#e9c48a"/>' +
+        '<stop offset="1" stop-color="#5a2e12"/></linearGradient>' +
         '<clipPath id="au-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('au') + '</defs>' +
         '<circle cx="100" cy="100" r="90" fill="url(#au-b)"/>' +
-        '<g clip-path="url(#au-c)">' +
-        '<path d="M-10 78 Q60 70 120 80 T210 74 L210 88 Q140 92 80 84 T-10 92 Z" fill="#8f4a17" opacity="0.5"/>' +
-        '<path d="M-10 128 Q70 120 130 132 T210 126 L210 138 Q150 142 90 134 T-10 142 Z" fill="#8f4a17" opacity="0.45"/>' +
-        '<ellipse cx="128" cy="134" rx="22" ry="10" fill="#f7e7c3"/>' +
-        '<ellipse cx="128" cy="134" rx="14" ry="6" fill="#e0b071" opacity="0.7"/>' +
+        '<g clip-path="url(#au-c)" transform="rotate(-28 100 100)">' +
+        '<path d="M-20 82 q30 -12 60 0 t60 0 t60 0 t60 0 l0 10 q-30 12 -60 0 t-60 0 t-60 0 t-60 0z" fill="#7a3d12" opacity="0.55"/>' +
+        '<path d="M-20 126 q30 10 60 0 t60 0 t60 0 t60 0 l0 8 q-30 -10 -60 0 t-60 0 t-60 0 t-60 0z" fill="#7a3d12" opacity="0.45"/>' +
+        '<g fill="#fbf1d8"><ellipse cx="62" cy="104" rx="9" ry="6"/><ellipse cx="88" cy="106" rx="11" ry="7"/><ellipse cx="118" cy="104" rx="9" ry="6"/><ellipse cx="144" cy="106" rx="7" ry="5"/></g>' +
+        '<g fill="#c98a3e" opacity="0.7"><ellipse cx="62" cy="104" rx="5" ry="3"/><ellipse cx="88" cy="106" rx="6" ry="3.5"/><ellipse cx="118" cy="104" rx="5" ry="3"/></g>' +
+        '<path d="M40 52 q60 -30 120 0" fill="none" stroke="#fff3d6" stroke-width="3" opacity="0.5"/>' +
         '</g><circle cx="100" cy="100" r="90" fill="url(#au-sh)"/></svg>'
     },
     {
@@ -317,16 +318,18 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
       transit: 23, halfSpan: 4, azCenter: 95, azSpread: 120, maxAlt: 62,
       period: 1, offset: 0, size: 0.55, mag: 2, needsFilter: false, value: 70,
       svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
-        '<radialGradient id="ma-b" cx="0.38" cy="0.36" r="0.8"><stop offset="0" stop-color="#f4f0e6"/><stop offset="0.7" stop-color="#c9c2b4"/><stop offset="1" stop-color="#8a8378"/></radialGradient>' +
+        '<radialGradient id="ma-b" cx="0.38" cy="0.36" r="0.8"><stop offset="0" stop-color="#f6f1e4"/><stop offset="0.7" stop-color="#cfc6b4"/><stop offset="1" stop-color="#8d8574"/></radialGradient>' +
         '<clipPath id="ma-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('ma') + '</defs>' +
         '<circle cx="100" cy="100" r="90" fill="url(#ma-b)"/>' +
         '<g clip-path="url(#ma-c)">' +
-        '<circle cx="70" cy="80" r="18" fill="#a59d90"/><circle cx="72" cy="78" r="13" fill="#d8d1c3"/>' +
-        '<circle cx="128" cy="118" r="26" fill="#a59d90"/><circle cx="131" cy="115" r="20" fill="#dcd5c7"/>' +
-        '<circle cx="106" cy="52" r="9" fill="#aaa294"/><circle cx="107" cy="51" r="6" fill="#d3ccbe"/>' +
-        '<circle cx="60" cy="140" r="12" fill="#a59d90"/><circle cx="62" cy="138" r="8" fill="#d6cfc1"/>' +
-        '<circle cx="150" cy="70" r="7" fill="#aaa294"/><circle cx="92" cy="160" r="6" fill="#aaa294"/>' +
-        '<circle cx="40" cy="104" r="5" fill="#aaa294"/>' +
+        '<g stroke="#b8a88e" stroke-width="2" opacity="0.5" fill="none"><path d="M30 60 q40 10 80 -6 t70 4"/><path d="M20 130 q50 -14 90 4 t80 -8"/></g>' +
+        '<path d="M18 150 Q60 118 96 100 T190 44 L194 54 Q140 74 104 108 T26 160 Z" fill="#5e5346"/>' +
+        '<path d="M22 152 Q62 122 98 104 T188 50" fill="none" stroke="#2f2820" stroke-width="3"/>' +
+        '<g stroke="#fbf7ee" stroke-width="2" opacity="0.8"><path d="M132 62 l30 -34"/><path d="M132 62 l44 -6"/><path d="M132 62 l24 40"/><path d="M132 62 l-38 -30"/><path d="M132 62 l-6 48"/></g>' +
+        '<circle cx="132" cy="62" r="16" fill="#a89d8b"/><circle cx="134" cy="60" r="12" fill="#ebe4d5"/><circle cx="132" cy="62" r="4" fill="#b5a893"/>' +
+        '<circle cx="58" cy="84" r="11" fill="#a89d8b"/><circle cx="60" cy="82" r="8" fill="#ddd5c5"/>' +
+        '<circle cx="72" cy="146" r="8" fill="#a89d8b"/><circle cx="73" cy="145" r="5.5" fill="#d8d0c0"/>' +
+        '<circle cx="150" cy="128" r="6" fill="#a89d8b"/><circle cx="44" cy="46" r="5" fill="#a89d8b"/>' +
         '</g><circle cx="100" cy="100" r="90" fill="url(#ma-sh)"/></svg>'
     },
     {
@@ -335,17 +338,17 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
       transit: 19.5, halfSpan: 2.5, azCenter: 275, azSpread: 60, maxAlt: 26,
       period: 1, offset: 0, size: 1.3, mag: 2, needsFilter: false, value: 90,
       svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
-        '<radialGradient id="ve-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#c9a6ff"/><stop offset="0.6" stop-color="#7d4fd6"/><stop offset="1" stop-color="#37206e"/></radialGradient>' +
-        '<linearGradient id="ve-r" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e9dcff" stop-opacity="0.15"/><stop offset="0.5" stop-color="#e9dcff" stop-opacity="0.9"/><stop offset="1" stop-color="#e9dcff" stop-opacity="0.15"/></linearGradient>' +
-        '<clipPath id="ve-c"><circle cx="100" cy="100" r="62"/></clipPath>' +
+        '<radialGradient id="ve-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#d3b3ff"/><stop offset="0.6" stop-color="#7a4bd4"/><stop offset="1" stop-color="#2e1a62"/></radialGradient>' +
+        '<linearGradient id="ve-r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#efe4ff" stop-opacity="0.2"/><stop offset="0.5" stop-color="#efe4ff" stop-opacity="0.95"/><stop offset="1" stop-color="#efe4ff" stop-opacity="0.2"/></linearGradient>' +
+        '<clipPath id="ve-c"><circle cx="100" cy="100" r="64"/></clipPath>' +
         '<radialGradient id="ve-sh" cx="0.32" cy="0.3" r="0.95"><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.72"/></radialGradient></defs>' +
-        '<g transform="rotate(-18 100 100)">' +
-        '<path d="M2 100 a98 22 0 0 1 196 0" fill="none" stroke="url(#ve-r)" stroke-width="9"/>' +
-        '<circle cx="100" cy="100" r="62" fill="url(#ve-b)"/>' +
-        '<g clip-path="url(#ve-c)"><path d="M30 90 q40 -10 70 0 t70 -4 l0 8 q-30 6 -70 2 t-70 4z" fill="#fff" opacity="0.18"/></g>' +
-        '<circle cx="100" cy="100" r="62" fill="url(#ve-sh)"/>' +
-        '<path d="M2 100 a98 22 0 0 0 196 0" fill="none" stroke="url(#ve-r)" stroke-width="9"/>' +
-        '<path d="M14 100 a86 16 0 0 0 172 0" fill="none" stroke="#b79cf0" stroke-width="2" opacity="0.8"/>' +
+        '<g transform="rotate(14 100 100)">' +
+        '<path d="M100 4 a20 96 0 0 0 0 192" fill="none" stroke="url(#ve-r)" stroke-width="8"/>' +
+        '<circle cx="100" cy="100" r="64" fill="url(#ve-b)"/>' +
+        '<g clip-path="url(#ve-c)" fill="#fff"><path d="M36 82 q30 -12 64 -2 t64 -6 l0 8 q-34 8 -64 2 t-64 6z" opacity="0.16"/><path d="M40 126 q30 8 60 0 t60 -4 l0 6 q-30 6 -60 2 t-60 2z" opacity="0.12"/><path d="M92 36 l16 0 l0 128 l-16 0z" opacity="0.08"/></g>' +
+        '<circle cx="100" cy="100" r="64" fill="url(#ve-sh)"/>' +
+        '<path d="M100 4 a20 96 0 0 1 0 192" fill="none" stroke="url(#ve-r)" stroke-width="8"/>' +
+        '<path d="M100 12 a15 88 0 0 1 0 176" fill="none" stroke="#b79cf0" stroke-width="1.5" opacity="0.8"/>' +
         '</g></svg>'
     },
     {
@@ -369,13 +372,13 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
       transit: 24.5, halfSpan: 3, azCenter: 180, azSpread: 100, maxAlt: 70,
       period: 1, offset: 0, size: 1.1, mag: 3, needsFilter: false, value: 130,
       svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
-        '<radialGradient id="ce-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#6fb0ff"/><stop offset="0.6" stop-color="#2358c9"/><stop offset="1" stop-color="#0f2a72"/></radialGradient>' +
+        '<radialGradient id="ce-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#5aa3ff"/><stop offset="0.6" stop-color="#1f4fc2"/><stop offset="1" stop-color="#0b2166"/></radialGradient>' +
         '<clipPath id="ce-c"><circle cx="100" cy="100" r="90"/></clipPath>' + shade('ce') + '</defs>' +
         '<circle cx="100" cy="100" r="90" fill="url(#ce-b)"/>' +
-        '<g clip-path="url(#ce-c)" fill="#fff">' +
-        '<path d="M-10 62 q60 -14 110 0 t110 -6 l0 10 q-50 8 -110 0 t-110 6z" opacity="0.5"/>' +
-        '<path d="M-10 140 q60 -10 110 2 t110 -4 l0 8 q-50 6 -110 0 t-110 4z" opacity="0.4"/>' +
-        '<path d="M118 100 m-26 0 a26 26 0 1 1 26 26 a18 18 0 1 0 -18 -18 a10 10 0 1 1 10 10" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.9"/>' +
+        '<g clip-path="url(#ce-c)" fill="none" stroke="#eaf3ff" stroke-linecap="round" stroke-linejoin="round">' +
+        '<g stroke-width="2.5" opacity="0.7"><path d="M20 70 l26 -14 l30 12 l28 -16 l30 12 l28 -14"/><path d="M14 104 l28 -14 l30 12 l28 -16 l30 12 l30 -14"/><path d="M22 140 l26 -14 l30 12 l28 -16 l30 12 l28 -12"/></g>' +
+        '<g stroke-width="1.6" opacity="0.55"><path d="M46 56 l-4 34 l-6 36"/><path d="M76 68 l-6 22 l4 36"/><path d="M104 52 l4 38 l-6 36"/><path d="M134 64 l-2 26 l6 36"/><path d="M162 50 l-2 40 l-4 40"/></g>' +
+        '<path d="M124 122 m-20 0 a20 20 0 1 1 20 20 a13 13 0 1 0 -13 -13 a7 7 0 1 1 7 7" stroke-width="5" opacity="0.95"/>' +
         '</g><circle cx="100" cy="100" r="90" fill="url(#ce-sh)"/></svg>'
     },
     {
@@ -401,14 +404,16 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
       transit: 24, halfSpan: 3, azCenter: 320, azSpread: 80, maxAlt: 40,
       period: 1, offset: 0, size: 0.9, mag: 3, needsFilter: true, value: 190,
       svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs>' +
-        '<radialGradient id="qu-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#f0a072"/><stop offset="0.6" stop-color="#b5522a"/><stop offset="1" stop-color="#4f1f10"/></radialGradient>' +
+        '<radialGradient id="qu-b" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#f2a878"/><stop offset="0.6" stop-color="#b14f28"/><stop offset="1" stop-color="#4a1c0e"/></radialGradient>' +
+        '<clipPath id="qu-c"><ellipse cx="100" cy="100" rx="56" ry="48"/></clipPath>' +
         '<radialGradient id="qu-sh" cx="0.32" cy="0.3" r="0.95"><stop offset="0.45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.72"/></radialGradient></defs>' +
-        '<g transform="rotate(22 100 100)">' +
-        '<g fill="none" opacity="0.85"><path d="M8 100 a92 26 0 0 1 184 0" stroke="#f3d9b8" stroke-width="5"/><path d="M18 100 a82 22 0 0 1 164 0" stroke="#d9a67a" stroke-width="3"/><path d="M28 100 a72 18 0 0 1 144 0" stroke="#f3d9b8" stroke-width="4"/></g>' +
-        '<circle cx="100" cy="100" r="54" fill="url(#qu-b)"/>' +
-        '<circle cx="100" cy="100" r="54" fill="url(#qu-sh)"/>' +
-        '<g fill="none" opacity="0.95"><path d="M8 100 a92 26 0 0 0 184 0" stroke="#f3d9b8" stroke-width="5"/><path d="M18 100 a82 22 0 0 0 164 0" stroke="#d9a67a" stroke-width="3"/><path d="M28 100 a72 18 0 0 0 144 0" stroke="#f3d9b8" stroke-width="4"/></g>' +
-        '<circle cx="30" cy="84" r="5" fill="#e7d3bd"/><circle cx="176" cy="112" r="4" fill="#cdb69b"/>' +
+        '<g transform="rotate(-34 100 100)">' +
+        '<g fill="none" opacity="0.85"><path d="M6 100 a94 34 0 0 1 188 0" stroke="#b8683a" stroke-width="7"/><path d="M22 100 a78 26 0 0 1 156 0" stroke="#f0c9a2" stroke-width="3"/><path d="M34 100 a66 20 0 0 1 132 0" stroke="#d9935e" stroke-width="5"/></g>' +
+        '<ellipse cx="100" cy="100" rx="56" ry="48" fill="url(#qu-b)"/>' +
+        '<g clip-path="url(#qu-c)"><path d="M40 92 q30 10 60 -4 t60 6 l0 8 q-30 -8 -60 2 t-60 -4z" fill="#5a2410" opacity="0.5"/><ellipse cx="78" cy="74" rx="12" ry="6" fill="#ffd9b8" opacity="0.7"/></g>' +
+        '<ellipse cx="100" cy="100" rx="56" ry="48" fill="url(#qu-sh)"/>' +
+        '<g fill="none" opacity="0.95"><path d="M6 100 a94 34 0 0 0 188 0" stroke="#b8683a" stroke-width="7"/><path d="M22 100 a78 26 0 0 0 156 0" stroke="#f0c9a2" stroke-width="3"/><path d="M34 100 a66 20 0 0 0 132 0" stroke="#d9935e" stroke-width="5"/></g>' +
+        '<circle cx="22" cy="88" r="5" fill="#e7d3bd"/><circle cx="184" cy="114" r="4" fill="#cdb69b"/>' +
         '</g></svg>'
     },
     {
@@ -501,7 +506,7 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
   const NIGHT_END = 30;               // 06:00 next morning
   const REAL_SECONDS_PER_HOUR = 30;   // one game hour of night lasts this long at 1x
   const FOLLOW_RATE = [0, 1.5, 3, 5, 12]; // how strongly the mount follows a locked planet, by tracking level
-  const ZOOMS = [1, 2, 4, 8, 16, 32];
+  const ZOOMS = [1, 2, 4, 8, 16, 32, 64, 128, 256];
   const BASE_FOV = 60;                // degrees across the eyepiece at 1x
   const OBS_SECONDS = 3;              // hold the planet centred this long
   const DAWN_GRANT = 60;
@@ -511,8 +516,8 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
     aperture: { name: 'Mirror', unit: 'aperture', max: 5, costs: [0, 150, 400, 900, 2000],
       desc: 'A wider mirror gathers more light and shows fainter worlds.',
       effect: l => `Sees objects of faintness ${l} and below` },
-    mag: { name: 'Eyepieces', unit: 'magnification', max: 6, costs: [0, 100, 250, 600, 1200, 2500],
-      desc: 'Stronger eyepieces resolve small planets into discs.',
+    mag: { name: 'Eyepieces', unit: 'magnification', max: 9, costs: [0, 100, 250, 600, 1200, 2000, 3000, 4500, 6500],
+      desc: 'Stronger eyepieces resolve small planets into discs, then fill the eyepiece with them.',
       effect: l => `Zoom up to ×${ZOOMS[l - 1]}` },
     tracking: { name: 'Mount', unit: 'tracking', max: 4, costs: [0, 120, 350, 800],
       desc: 'A motorised mount steadies the view and cancels drift.',
@@ -564,11 +569,26 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
   function mulberry(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
   // ---------- Sky model ----------
+  // Stars are points of light, never discs: they differ by colour class, brightness,
+  // twinkle and (for the bright ones) diffraction spikes. A band of faint stars
+  // runs across the sky like a galaxy seen edge-on, with a few clusters and doubles.
+  const STAR_RGB = { O: [168, 190, 255], A: [224, 232, 255], G: [255, 246, 222], K: [255, 214, 160], M: [255, 168, 130] };
+  const bandAlt = az => 48 + 32 * Math.sin(rad(az - 20));
   const STARS = (() => {
     const r = mulberry(20260907), out = [];
-    for (let i = 0; i < 2600; i++) {
-      out.push({ az: r() * 360, alt: Math.asin(r()) * 180 / Math.PI, m: r(), tw: r() * Math.PI * 2, warm: r() });
+    const gauss = () => r() + r() + r() - 1.5;
+    const push = (az, alt, m) => {
+      alt = clamp(alt, 0.5, 89.5); az = ((az % 360) + 360) % 360;
+      const c = r(); const cls = c < 0.05 ? 'O' : c < 0.22 ? 'A' : c < 0.58 ? 'G' : c < 0.86 ? 'K' : 'M';
+      out.push({ az, alt, m, tw: r() * Math.PI * 2, cls, rgb: STAR_RGB[cls] });
+    };
+    for (let i = 0; i < 2400; i++) push(r() * 360, Math.asin(r()) * 180 / Math.PI, Math.pow(r(), 2.2));
+    for (let i = 0; i < 2600; i++) { const az = r() * 360; push(az, bandAlt(az) + gauss() * 9, Math.pow(r(), 3) * 0.55); }
+    for (let k = 0; k < 7; k++) {
+      const caz = r() * 360, calt = 12 + r() * 60, n = 25 + Math.floor(r() * 30);
+      for (let j = 0; j < n; j++) push(caz + gauss() * 1.3 / Math.max(0.3, Math.cos(rad(calt))), calt + gauss() * 1.3, Math.pow(r(), 1.6) * 0.75);
     }
+    for (let k = 0; k < 12; k++) { const az = r() * 360, alt = 8 + r() * 70; push(az, alt, 0.7 + r() * 0.3); push(az + 0.03 + r() * 0.05, alt + 0.02, 0.45 + r() * 0.3); }
     return out;
   })();
   const DUST = [
@@ -617,8 +637,27 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
   }
 
   // ---------- Planet images ----------
-  const IMG = {};
-  PLANETS.forEach(p => { const im = new Image(); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(p.svg); IMG[p.id] = im; });
+  // The eyepiece can zoom until a planet is larger than the screen, so models are
+  // rasterised on demand at the size bucket the current zoom needs.
+  const SPRITES = {};
+  function spriteImage(p, bucket) {
+    const key = p.id + ':' + bucket;
+    if (!SPRITES[key]) {
+      const im = new Image();
+      im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(p.svg.replace('<svg ', `<svg width="${bucket}" height="${bucket}" `));
+      SPRITES[key] = im;
+    }
+    return SPRITES[key];
+  }
+  const BUCKETS = [256, 1024, 2048];
+  function sprite(p, d) {
+    const want = d <= 200 ? 256 : d <= 900 ? 1024 : 2048;
+    const im = spriteImage(p, want);
+    if (im.complete && im.naturalWidth) return im;
+    for (const b of BUCKETS) { const f = SPRITES[p.id + ':' + b]; if (f && f.complete && f.naturalWidth) return f; }
+    return null;
+  }
+  PLANETS.forEach(p => spriteImage(p, 256));
 
   // ---------- Canvas / telescope ----------
   const canvas = $('sky'), ctx = canvas.getContext('2d');
@@ -643,6 +682,40 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
 
   // observation state
   let obs = { id: null, t: 0 };
+  // slew: the mount swings to a tapped planet and picks a zoom that frames it
+  let slew = null;
+  function fitZoomIdx(p) {
+    let idx = 0;
+    for (let i = 0; i < S.up.mag; i++) { if (p.size * (2 * R) / (BASE_FOV / ZOOMS[i]) <= 2 * R * 0.62) idx = i; }
+    return idx;
+  }
+  function planetAt(x, y) {
+    let best = null, bestD = Infinity;
+    for (const p of PLANETS) {
+      const pos = planetPos(p, S.hour, S.night); if (!pos) continue;
+      const st = planetStatus(p, pos);
+      if (!st.apertureOk && !st.glimmer) continue;
+      const pt = project(pos.az, pos.alt), dist = Math.hypot(pt.x - x, pt.y - y);
+      if (dist <= Math.max(28, st.d / 2) && dist < bestD) { best = p; bestD = dist; }
+    }
+    return best;
+  }
+  function startSlew(p) {
+    slew = { id: p.id, t: 0, zoomIdx: fitZoomIdx(p), fromZoom: S.zoomIdx };
+    setMessage(S.discovered[p.id] ? `Slewing to ${p.name}…` : 'Slewing to target…', 1200);
+  }
+  function updateSlew(dt) {
+    if (!slew) return;
+    const p = PLANETS.find(q => q.id === slew.id), pos = planetPos(p, S.hour, S.night);
+    if (!pos || pointers.size) { slew = null; return; }
+    slew.t = Math.min(1, slew.t + dt / 0.7);
+    const k = Math.min(1, dt * 9);
+    S.viewAz = ((S.viewAz + wrap180(pos.az - S.viewAz) * k) % 360 + 360) % 360;
+    S.viewAlt = clamp(S.viewAlt + (pos.alt - S.viewAlt) * k, 0, 88);
+    const zi = Math.round(slew.fromZoom + (slew.zoomIdx - slew.fromZoom) * slew.t);
+    if (zi !== S.zoomIdx) setZoom(zi);
+    if (slew.t >= 1) { slew = null; save(); }
+  }
   let msg = { text: '', until: 0 };
   function setMessage(text, ms) { msg.text = text; msg.until = performance.now() + (ms || 1800); }
 
@@ -683,14 +756,40 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
       ctx.fillStyle = dg; ctx.beginPath(); ctx.arc(c.x, c.y, rr, 0, Math.PI * 2); ctx.fill();
     });
     // stars
-    const faintCut = z >= 8 ? 0 : z >= 4 ? 0.25 : z >= 2 ? 0.45 : 0.6;
+    const faintCut = z >= 8 ? 0 : z >= 4 ? 0.2 : z >= 2 ? 0.4 : 0.55;
+    const seeing = 1 + Math.log2(z) * 0.06;
+    if (z <= 4) {
+      // soft glow along the star band
+      ctx.globalCompositeOperation = 'lighter';
+      for (let a = -half / azScale(); a <= half / azScale(); a += 6) {
+        const az = S.viewAz + a, alt = bandAlt(az);
+        if (Math.abs(alt - S.viewAlt) > half + 14) continue;
+        const c = project(az, alt), rr = 14 * s;
+        const bg = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, rr);
+        bg.addColorStop(0, 'rgba(150,160,210,0.07)'); bg.addColorStop(1, 'rgba(150,160,210,0)');
+        ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(c.x, c.y, rr, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
     for (const st of STARS) {
       if (st.m < faintCut) continue;
       if (Math.abs(wrap180(st.az - S.viewAz)) > half / azScale() || Math.abs(st.alt - S.viewAlt) > half) continue;
       const pt = project(st.az, st.alt);
-      const tw = 0.75 + 0.25 * Math.sin(now / 600 + st.tw);
-      const size = (0.6 + st.m * 1.6) * tw;
-      ctx.fillStyle = st.warm > 0.8 ? `rgba(255,220,180,${0.5 + st.m * 0.5})` : st.warm < 0.15 ? `rgba(190,210,255,${0.5 + st.m * 0.5})` : `rgba(240,240,255,${0.45 + st.m * 0.55})`;
+      const lowSky = 1 - st.alt / 90;
+      const tw = 1 - (0.12 + 0.3 * lowSky) * (0.5 + 0.5 * Math.sin(now / (380 + st.tw * 90) + st.tw * 7));
+      const size = (0.5 + st.m * 2.1) * seeing * tw;
+      const [cr, cg, cb] = st.rgb, alpha = (0.35 + st.m * 0.65) * tw;
+      if (st.m > 0.72) {
+        const gr = size * 2.6;
+        const gl = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, gr);
+        gl.addColorStop(0, `rgba(${cr},${cg},${cb},${alpha * 0.4})`); gl.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+        ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(pt.x, pt.y, gr, 0, Math.PI * 2); ctx.fill();
+        if (z >= 4) {
+          const L = size * 6; ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha * 0.35})`; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(pt.x - L, pt.y); ctx.lineTo(pt.x + L, pt.y); ctx.moveTo(pt.x, pt.y - L); ctx.lineTo(pt.x, pt.y + L); ctx.stroke();
+        }
+      }
+      ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`;
       ctx.beginPath(); ctx.arc(pt.x, pt.y, size, 0, Math.PI * 2); ctx.fill();
     }
     // planets
@@ -722,10 +821,10 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
         if (inLock) feedback = 'A steady point that does not twinkle. Zoom in to resolve it.';
         continue;
       }
-      const im = IMG[p.id];
-      if (im.complete) {
+      const im = sprite(p, st.d);
+      if (im) {
         ctx.save();
-        ctx.shadowColor = 'rgba(255,240,220,0.35)'; ctx.shadowBlur = st.d * 0.25;
+        ctx.shadowColor = 'rgba(255,240,220,0.35)'; ctx.shadowBlur = Math.min(24, st.d * 0.25);
         ctx.drawImage(im, pt.x - st.d / 2, pt.y - st.d / 2, st.d, st.d);
         ctx.restore();
       }
@@ -814,11 +913,12 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
       // drift + shake
       const tr = S.up.tracking;
       if (tr < 4 && screen === 'telescope') S.viewAz = (S.viewAz + dtReal * 0.05 / tr) % 360;
-      const amp = (tr >= 4 ? 0.004 : 0.06 / tr) * pxPerDeg();
+      const amp = Math.min(22, (tr >= 4 ? 0.004 : 0.06 / tr) * pxPerDeg());
       shake.x = Math.sin(now / 130) * amp * 0.6 + Math.sin(now / 47) * amp * 0.4;
       shake.y = Math.cos(now / 170) * amp * 0.6 + Math.sin(now / 61) * amp * 0.4;
     }
     if (screen === 'telescope') {
+      if (!paused) updateSlew(dtReal);
       drawSky(now, paused ? 0 : dtReal);
       renderReadout();
       if (S.up.chart >= 2 && S.showChart) drawChart();
@@ -1038,15 +1138,27 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
 
   // zoom
   function setZoom(i) { S.zoomIdx = clamp(i, 0, S.up.mag - 1); save(); }
-  $('zoomIn').addEventListener('click', () => { if (S.zoomIdx + 1 >= S.up.mag) { setMessage('Stronger eyepieces are sold in the Workshop.', 1500); } setZoom(S.zoomIdx + 1); });
-  $('zoomOut').addEventListener('click', () => setZoom(S.zoomIdx - 1));
+  function stepZoom(dir) {
+    if (dir > 0 && S.zoomIdx + 1 >= S.up.mag) setMessage('Stronger eyepieces are sold in the Workshop.', 1500);
+    setZoom(S.zoomIdx + dir);
+  }
+  // Tap steps one level; press and hold runs through the whole range.
+  [['zoomIn', 1], ['zoomOut', -1]].forEach(([id, dir]) => {
+    const btn = $(id); let timer = null, repeat = null;
+    const stop = () => { clearTimeout(timer); clearInterval(repeat); timer = repeat = null; };
+    btn.addEventListener('pointerdown', e => {
+      e.preventDefault(); slew = null; stepZoom(dir);
+      timer = setTimeout(() => { repeat = setInterval(() => stepZoom(dir), 160); }, 400);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, stop));
+  });
 
   // pan / pinch
   const pointers = new Map(); let pinchStart = null;
-  canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinchStart = { d: Math.hypot(a.x - b.x, a.y - b.y), idx: S.zoomIdx }; } });
+  canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now() }); slew = null; if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinchStart = { d: Math.hypot(a.x - b.x, a.y - b.y), idx: S.zoomIdx }; } });
   canvas.addEventListener('pointermove', e => {
     if (!pointers.has(e.pointerId)) return;
-    const prev = pointers.get(e.pointerId); const cur = { x: e.clientX, y: e.clientY };
+    const prev = pointers.get(e.pointerId); const cur = { x: e.clientX, y: e.clientY, sx: prev.sx, sy: prev.sy, t: prev.t };
     if (pointers.size === 1) {
       const s = pxPerDeg();
       S.viewAz = ((S.viewAz - (cur.x - prev.x) / (s * azScale())) % 360 + 360) % 360;
@@ -1059,7 +1171,16 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
       setZoom(pinchStart.idx + steps);
     }
   });
-  const endPointer = e => { pointers.delete(e.pointerId); if (pointers.size < 2) pinchStart = null; save(); };
+  const endPointer = e => {
+    const start = pointers.get(e.pointerId);
+    pointers.delete(e.pointerId); if (pointers.size < 2) pinchStart = null;
+    if (start && e.type === 'pointerup' && !pointers.size && Math.hypot(e.clientX - start.sx, e.clientY - start.sy) < 8 && performance.now() - start.t < 350) {
+      const rect = canvas.getBoundingClientRect();
+      const target = planetAt(e.clientX - rect.left, e.clientY - rect.top);
+      if (target) startSlew(target);
+    }
+    save();
+  };
   canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('wheel', e => { e.preventDefault(); setZoom(S.zoomIdx + (e.deltaY < 0 ? 1 : -1)); }, { passive: false });
   window.addEventListener('keydown', e => {
@@ -1078,7 +1199,7 @@ h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0 0
   S.zoomIdx = clamp(S.zoomIdx, 0, S.up.mag - 1);
   resize(); renderTop(); renderIndex(); renderShop();
   if (!Object.keys(S.discovered).length && S.night === 1 && S.hour < 18.05) {
-    setMessage('Drag to sweep the sky. Two bright worlds are up in the south tonight.', 5000);
+    setMessage('Drag to sweep the sky, tap a planet to swing onto it. Two bright worlds are up in the south tonight.', 6000);
   }
   requestAnimationFrame(tick);
 })();

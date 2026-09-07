@@ -11,9 +11,12 @@ behaves like an installed app (offline too, via the service worker).
 
 ## Play
 
-- **Telescope** — drag to sweep the sky, pinch or use the ± buttons to zoom.
-  Centre a planet in the reticle and hold it there for three seconds to log an
-  observation. The mount follows a centred planet; a better mount follows better.
+- **Telescope** — drag to sweep the sky; pinch, or tap the ± buttons (press and
+  hold to run through the range) to zoom from ×1 out to ×256, where a gas giant
+  fills the whole eyepiece. **Tap a planet** and the mount swings onto it and
+  picks a magnification that frames it. Centre one in the reticle and hold it
+  there for three seconds to log an observation; the mount then tracks it, and a
+  better mount tracks better.
   Points that do not twinkle are planets you have not zoomed into yet; faint
   smudges need a bigger mirror; hazy blobs are hiding in dust and need the filter.
 - **Index** — the catalogue of all twelve entries. Unknown entries sell three
@@ -60,6 +63,16 @@ telescope-game/
     ├── <Planet>.dc.html     one artboard per planet model
     └── canvas.json          canvas layout
 ```
+
+## The sky
+
+Stars are drawn as points of light, never as discs, so nothing in the star field
+can be mistaken for a planet: they carry spectral colour (blue-white through
+amber to red), brightness-scaled twinkle that worsens near the horizon, and
+diffraction spikes on the brightest ones once you are past ×4. A band of faint
+stars runs across the sky like a galaxy seen edge-on, with a handful of open
+clusters and close double stars scattered through it. Planets are the things
+that hold steady and grow into discs as you zoom.
 
 ## Planet models and Claude Design
 
