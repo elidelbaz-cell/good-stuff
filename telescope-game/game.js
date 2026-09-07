@@ -627,7 +627,9 @@
     if (t.dataset.tab === 'almanac') renderAlmanac();
   }));
   document.body.addEventListener('click', e => {
-    const c = e.target.closest('[data-close]'); if (c) $(c.dataset.close).classList.add('hidden');
+    const c = e.target.closest('[data-close]'); if (c) { $(c.dataset.close).classList.add('hidden'); return; }
+    // tapping the dimmed area outside a sheet closes the planet detail
+    if (e.target.id === 'detail') e.target.classList.add('hidden');
   });
   $('speedBtn').addEventListener('click', () => { S.speed = S.speed === 1 ? 6 : S.speed === 6 ? 20 : 1; renderTop(); save(); });
   $('endNight').addEventListener('click', () => { S.hour = NIGHT_END; });
@@ -696,6 +698,11 @@
     if (e.key === '+' || e.key === '=') setZoom(S.zoomIdx + 1);
     if (e.key === '-') setZoom(S.zoomIdx - 1);
   });
+  // Only the eyepiece zooms. iOS Safari ignores user-scalable=no, so page-level
+  // pinch is refused explicitly; double-tap zoom is handled by the touch-action
+  // rules in the stylesheet, which do it without swallowing quick taps.
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+  document.addEventListener('touchmove', e => { if (e.touches.length > 1 && !canvas.contains(e.target)) e.preventDefault(); }, { passive: false });
   document.addEventListener('visibilitychange', () => { paused = document.hidden; last = performance.now(); save(); });
 
   // ---------- Boot ----------
