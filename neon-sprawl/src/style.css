@@ -1,0 +1,129 @@
+html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0a0618; }
+body { font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; user-select: none; -webkit-user-select: none; }
+#game {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  background: #120a28;
+}
+
+#hud { position: fixed; inset: 0; pointer-events: none; color: #fff; z-index: 10; }
+.hidden { display: none !important; }
+
+/* ---------- top bar ---------- */
+#topbar {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 16px;
+  background: rgba(12, 7, 26, 0.7); border-radius: 999px; padding: 7px 16px;
+  border: 1px solid rgba(154, 111, 240, 0.3);
+}
+#hpwrap { width: 140px; height: 12px; background: rgba(255,255,255,0.14); border-radius: 999px; overflow: hidden; }
+#hpbar { height: 100%; width: 100%; background: linear-gradient(90deg, #4dffe1, #9af0c8); border-radius: 999px; transition: width 0.15s ease; }
+#hpbar.low { background: linear-gradient(90deg, #ff4fd8, #ff8a5c); }
+#stats { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; white-space: nowrap; }
+#stat-wanted.hot { color: #ff4fd8; animation: pulse 0.8s ease infinite; }
+
+/* ---------- quest bar ---------- */
+#questbar {
+  position: absolute; top: 12px; left: 14px; max-width: 300px;
+  background: rgba(12, 7, 26, 0.7); border: 1px solid rgba(255, 225, 77, 0.35);
+  border-left: 4px solid #ffe14d; border-radius: 10px; padding: 8px 40px 8px 12px;
+}
+#quest-title { font-size: 12px; font-weight: 900; letter-spacing: 2px; color: #ffe14d; }
+#quest-obj { font-size: 12px; margin-top: 3px; color: rgba(255,255,255,0.88); line-height: 1.35; }
+#quest-arrow {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 22px; font-weight: 900; color: #ffe14d;
+  animation: pulse 1.2s ease infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* ---------- popups ---------- */
+#pops { position: absolute; inset: 0; overflow: hidden; }
+.pop {
+  position: absolute; transform: translate(-50%, -50%);
+  font-size: 22px; font-weight: 900; color: #ff4fd8;
+  text-shadow: 0 0 12px rgba(255, 79, 216, 0.9), 0 2px 4px rgba(0,0,0,0.8);
+  animation: popup 0.9s ease forwards;
+}
+.pop.sys {
+  font-size: 18px; color: #4dffe1; white-space: nowrap; max-width: 94vw;
+  overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 0 12px rgba(77, 255, 225, 0.8), 0 2px 4px rgba(0,0,0,0.8);
+  animation: popupsys 2.6s ease forwards;
+}
+@keyframes popup {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4) rotate(-8deg); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2) rotate(4deg); }
+  100% { opacity: 0; transform: translate(-50%, -110%) scale(1); }
+}
+@keyframes popupsys {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+  10% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
+}
+#flash { position: absolute; inset: 0; background: rgba(255, 40, 90, 0.35); opacity: 0; }
+#flash.on { animation: hitflash 0.35s ease; }
+@keyframes hitflash { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ---------- hint ---------- */
+#hint {
+  position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%);
+  font-size: 15px; font-weight: 800; text-align: center; max-width: 92vw;
+  background: rgba(12, 7, 26, 0.7); padding: 8px 18px; border-radius: 999px;
+  animation: pulse 1.5s ease infinite;
+}
+
+/* ---------- cutscene / dialogue ---------- */
+#cutscene { position: absolute; inset: 0; pointer-events: none; }
+.cutbar { position: absolute; left: 0; right: 0; height: 10vh; background: #05030c; }
+.cutbar.top { top: 0; }
+.cutbar.bottom { bottom: 0; }
+#cut-box {
+  position: absolute; bottom: 12vh; left: 50%; transform: translateX(-50%);
+  width: min(680px, 88vw); padding: 12px 18px;
+  background: rgba(12, 7, 26, 0.85); border: 1px solid rgba(154, 111, 240, 0.4);
+  border-radius: 12px;
+}
+#cut-speaker { font-size: 11px; font-weight: 900; letter-spacing: 3px; color: #4dffe1; margin-bottom: 5px; }
+#cut-text { font-size: 16px; line-height: 1.4; min-height: 44px; color: rgba(255,255,255,0.95); }
+#cut-text.system { text-align: center; font-weight: 900; font-size: 19px; color: #ff4fd8; letter-spacing: 2px; }
+#cut-adv { position: absolute; right: 12px; bottom: 6px; font-size: 10px; color: rgba(255,255,255,0.45); animation: pulse 1.4s ease infinite; }
+#cut-skip {
+  position: absolute; right: 16px; bottom: 2.5vh; pointer-events: auto;
+  font-size: 12px; font-weight: 900; letter-spacing: 2px; cursor: pointer;
+  padding: 7px 14px; border-radius: 999px; color: #fff;
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.35);
+}
+#cut-skip:hover { background: rgba(255,255,255,0.22); }
+
+/* ---------- overlay ---------- */
+#overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(24, 12, 48, 0.75), rgba(8, 5, 20, 0.95));
+  pointer-events: auto;
+}
+#panel { text-align: center; max-width: 560px; padding: 24px; }
+#o-title {
+  font-size: clamp(38px, 8vw, 68px); font-weight: 900; margin: 0 0 10px; letter-spacing: 6px;
+  background: linear-gradient(90deg, #4dffe1, #b98aff, #ff4fd8);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6));
+}
+#o-sub { font-size: 15px; line-height: 1.55; color: rgba(255,255,255,0.9); margin: 0 0 18px; }
+#o-controls { display: inline-block; text-align: left; margin: 0 0 22px; }
+#o-controls div { display: flex; align-items: baseline; gap: 12px; margin: 6px 0; font-size: 13px; color: rgba(255,255,255,0.85); }
+#o-controls b {
+  display: inline-block; min-width: 128px; text-align: center;
+  background: rgba(154, 111, 240, 0.18); border: 1px solid rgba(154, 111, 240, 0.45);
+  border-radius: 8px; padding: 3px 8px; font-size: 11px; letter-spacing: 1px;
+}
+#playbtn {
+  font-size: 20px; font-weight: 900; letter-spacing: 3px; cursor: pointer;
+  padding: 13px 44px; border-radius: 999px; border: none; color: #0a1420;
+  background: linear-gradient(90deg, #4dffe1, #9af0c8);
+  box-shadow: 0 6px 24px rgba(77, 255, 225, 0.35);
+  transition: transform 0.08s ease;
+}
+#playbtn:hover { transform: scale(1.05); }
+#playbtn:active { transform: scale(0.96); }
