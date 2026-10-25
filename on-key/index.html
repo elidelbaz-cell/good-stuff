@@ -1,3 +1,5 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<!-- /standalone-skeleton -->
 <title>On Key</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,6 +20,7 @@
   --bg: #0e121a; --surface: #161c28; --ink: #e8ecf4; --muted: #97a1b5; --line: #283043;
   --ref: #739dff; --voice: #ff6d9f; --good: #3ccf8a; --warn: #f0b23c; --bad: #ff6b5e; color-scheme: dark }
 
+[hidden] { display: none !important; }
 body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
 .wrap { max-width: 760px; margin: 0 auto; padding-block: 28px 64px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -31,9 +34,10 @@ header p { margin: 8px 0 0; color: var(--muted); max-width: 60ch; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .search { display: flex; gap: 8px; flex-wrap: wrap; }
 .search input { flex: 1 1 240px; min-width: 0; font: inherit; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
-button, .filebtn { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+button, .filebtn, a.btnlink { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
 button.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); }
-button.rec { background: var(--voice); color: #fff; border-color: var(--voice); }
+button.rec, a.rec { text-decoration: none; }
+button.rec, a.rec { background: var(--voice); color: #fff; border-color: var(--voice); }
 button:disabled { opacity: .5; cursor: not-allowed; }
 button:focus-visible, input:focus-visible, .filebtn:focus-within { outline: 2px solid var(--ref); outline-offset: 2px; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -132,6 +136,7 @@ label.toggle { display: inline-flex; gap: 8px; align-items: center; font-size: 1
     </div>
     <div class="row">
       <button class="rec" id="recBtn" type="button">● Record</button>
+      <a class="rec btnlink" id="liveLink" hidden target="_blank" rel="noopener">● Record live ↗</a>
       <label class="filebtn" for="fileIn">⇪ Upload a recording<input id="fileIn" type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.webm,.aac"></label>
     </div>
     <div class="row">
@@ -207,6 +212,10 @@ const BUILTINS = [
     notes: [["D4",1],["G4",2],["B4",.5],["G4",.5],["B4",2],["A4",1],["G4",2],["E4",1],["D4",2],["D4",1],["G4",2],["B4",.5],["G4",.5],["B4",2],["A4",1],["D5",3]] },
 ];
 let song = null;
+// claude.ai can search any song but blocks the mic; the hosted copy has the mic, and gets the song through the link.
+const LIVE_URL = "https://elidelbaz-cell.github.io/good-stuff/on-key/";
+const APP_URL = "https://claude.ai/artifact/9fjTSLq1y5kSAEmvuwEjoB";
+const inViewer = !!(window.claude && typeof window.claude.use === "function");
 
 function loadSong(s) {
   const notes = [];
@@ -223,6 +232,7 @@ function loadSong(s) {
   const scale = new Set((key.minor ? MINOR : MAJOR).map(i => (i + key.tonic) % 12));
   pitched.forEach(n => scale.add(n.midi % 12));
   song = { ...s, notes, pitched, key, scale, bpm: Math.max(40, Math.min(220, +s.bpm || 100)) };
+  $("liveLink").href = LIVE_URL + "#song=" + encodeURIComponent(JSON.stringify({ title: s.title, artist: s.artist, key: s.key, bpm: s.bpm, section: s.section, confidence: s.confidence, exact: !!s.exact, notes: s.notes }));
   $("songTitle").textContent = s.title || "Untitled";
   $("songArtist").textContent = s.artist || "";
   const conf = $("songConf");
@@ -259,9 +269,16 @@ const claudeReady = window.claude && typeof window.claude.use === "function"
   : Promise.resolve(null);
 claudeReady.then(s => { if (!s) {
   $("q").disabled = true; $("findBtn").disabled = true;
-  $("q").placeholder = "Song search needs the claude.ai viewer";
-  setStatus("songStatus", "Searching any song works when this page is opened on claude.ai. The four songs below always work.");
+  $("q").placeholder = "Search songs in the claude.ai version";
+  const st = $("songStatus");
+  st.textContent = "To sing any song, search for it in ";
+  const a = document.createElement("a"); a.href = APP_URL; a.target = "_blank"; a.rel = "noopener"; a.textContent = "On Key on claude.ai";
+  st.append(a, ", then tap “Record live”. It opens here with the song loaded.");
 }});
+if (inViewer) {
+  $("recBtn").hidden = true; $("liveLink").hidden = false;
+  setStatus("recStatus", "claude.ai doesn’t allow the microphone, so “Record live” opens this app in your browser with the song loaded. Uploading a voice memo works here too.");
+}
 
 function setStatus(id, msg, err) { const el = $(id); el.textContent = msg; el.classList.toggle("err", !!err); }
 
@@ -579,6 +596,7 @@ function drawResult() {
 let rec = null;
 async function startRecording() {
   let stream;
+  ac();
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
   } catch (e) {
@@ -662,10 +680,18 @@ $("playBackBtn").onclick = () => {
 };
 $("anyKey").addEventListener("change", () => { if (lastBuffer && lastScore) { const s = score(analyze(lastBuffer)); if (s) showResults(s); } });
 
-loadSong(BUILTINS[0]);
+let fromLink = null;
+try {
+  const m = /(?:^#|&)song=([^&]+)/.exec(location.hash);
+  if (m) { fromLink = JSON.parse(decodeURIComponent(m[1])); loadSong(fromLink); }
+} catch (_) { fromLink = null; }
+if (!fromLink) loadSong(BUILTINS[0]);
+else if (!inViewer) setStatus("recStatus", "“" + (fromLink.title || "Your song") + "” is loaded. Play it once, then press Record and sing.");
 const redraw = () => { drawRef(); drawResult(); };
 window.addEventListener("resize", redraw);
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redraw);
 new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 })();
 </script>
+
+</body></html>
