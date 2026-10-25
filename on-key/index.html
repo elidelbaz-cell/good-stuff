@@ -34,10 +34,9 @@ header p { margin: 8px 0 0; color: var(--muted); max-width: 60ch; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .search { display: flex; gap: 8px; flex-wrap: wrap; }
 .search input { flex: 1 1 240px; min-width: 0; font: inherit; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
-button, .filebtn, a.btnlink { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+button, .filebtn { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
 button.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); }
-button.rec, a.rec { text-decoration: none; }
-button.rec, a.rec { background: var(--voice); color: #fff; border-color: var(--voice); }
+button.rec, .filebtn.rec { background: var(--voice); color: #fff; border-color: var(--voice); }
 button:disabled { opacity: .5; cursor: not-allowed; }
 button:focus-visible, input:focus-visible, .filebtn:focus-within { outline: 2px solid var(--ref); outline-offset: 2px; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -136,7 +135,7 @@ label.toggle { display: inline-flex; gap: 8px; align-items: center; font-size: 1
     </div>
     <div class="row">
       <button class="rec" id="recBtn" type="button">● Record</button>
-      <a class="rec btnlink" id="liveLink" hidden target="_blank" rel="noopener">● Record live ↗</a>
+      <label class="filebtn rec" id="camBtn" for="camIn" hidden>● Sing now<input id="camIn" type="file" accept="video/*" capture="user"></label>
       <label class="filebtn" for="fileIn">⇪ Upload a recording<input id="fileIn" type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.webm,.aac"></label>
     </div>
     <div class="row">
@@ -212,8 +211,7 @@ const BUILTINS = [
     notes: [["D4",1],["G4",2],["B4",.5],["G4",.5],["B4",2],["A4",1],["G4",2],["E4",1],["D4",2],["D4",1],["G4",2],["B4",.5],["G4",.5],["B4",2],["A4",1],["D5",3]] },
 ];
 let song = null;
-// claude.ai can search any song but blocks the mic; the hosted copy has the mic, and gets the song through the link.
-const LIVE_URL = "https://elidelbaz-cell.github.io/good-stuff/on-key/";
+// claude.ai blocks the mic, but a file input can still open the camera; a selfie video carries the voice.
 const APP_URL = "https://claude.ai/artifact/9fjTSLq1y5kSAEmvuwEjoB";
 const inViewer = !!(window.claude && typeof window.claude.use === "function");
 
@@ -232,7 +230,6 @@ function loadSong(s) {
   const scale = new Set((key.minor ? MINOR : MAJOR).map(i => (i + key.tonic) % 12));
   pitched.forEach(n => scale.add(n.midi % 12));
   song = { ...s, notes, pitched, key, scale, bpm: Math.max(40, Math.min(220, +s.bpm || 100)) };
-  $("liveLink").href = LIVE_URL + "#song=" + encodeURIComponent(JSON.stringify({ title: s.title, artist: s.artist, key: s.key, bpm: s.bpm, section: s.section, confidence: s.confidence, exact: !!s.exact, notes: s.notes }));
   $("songTitle").textContent = s.title || "Untitled";
   $("songArtist").textContent = s.artist || "";
   const conf = $("songConf");
@@ -276,8 +273,8 @@ claudeReady.then(s => { if (!s) {
   st.append(a, ", then tap “Record live”. It opens here with the song loaded.");
 }});
 if (inViewer) {
-  $("recBtn").hidden = true; $("liveLink").hidden = false;
-  setStatus("recStatus", "claude.ai doesn’t allow the microphone, so “Record live” opens this app in your browser with the song loaded. Uploading a voice memo works here too.");
+  $("recBtn").hidden = true; $("camBtn").hidden = false;
+  setStatus("recStatus", "Tap “Sing now”. Your camera opens: tap the red button, sing, stop, then tap “Use Video”. Only the sound is scored, and the video never leaves your phone.");
 }
 
 function setStatus(id, msg, err) { const el = $(id); el.textContent = msg; el.classList.toggle("err", !!err); }
@@ -649,17 +646,17 @@ function stopRecording() {
 }
 $("recBtn").onclick = () => rec ? stopRecording() : startRecording();
 
-$("fileIn").addEventListener("change", async e => {
+["fileIn", "camIn"].forEach(id => $(id).addEventListener("change", async e => {
   const f = e.target.files[0]; if (!f) return;
-  setStatus("recStatus", "Reading " + f.name + "…");
+  setStatus("recStatus", id === "camIn" ? "Listening back to your take…" : "Reading " + f.name + "…");
   await analyzeBlob(f);
   e.target.value = "";
-});
+}));
 
 async function analyzeBlob(blob) {
   let buffer;
   try { buffer = await ac().decodeAudioData(await blob.arrayBuffer()); }
-  catch (e) { setStatus("recStatus", "Couldn’t read that audio. Try an .m4a, .mp3 or .wav file.", true); return; }
+  catch (e) { setStatus("recStatus", "Couldn’t get the sound out of that file. Record a voice memo instead and use “Upload a recording”.", true); return; }
   if (buffer.duration > 180) { setStatus("recStatus", "That recording is over 3 minutes. Trim it to just the part you sang.", true); return; }
   lastBuffer = buffer;
   setStatus("recStatus", "Scoring…");
