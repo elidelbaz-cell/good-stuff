@@ -1,0 +1,671 @@
+<title>On Key</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow column of three stations — pick a song, sing, read the verdict — with a piano roll as the shared visual. */
+:root {
+  --bg: #eef1f6; --surface: #ffffff; --ink: #121826; --muted: #5a6478; --line: #d6dce7;
+  --ref: #3a67d1; --voice: #d63c74; --good: #17905a; --warn: #b97b06; --bad: #cc3d33;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e121a; --surface: #161c28; --ink: #e8ecf4; --muted: #97a1b5; --line: #283043;
+  --ref: #739dff; --voice: #ff6d9f; --good: #3ccf8a; --warn: #f0b23c; --bad: #ff6b5e; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e121a; --surface: #161c28; --ink: #e8ecf4; --muted: #97a1b5; --line: #283043;
+  --ref: #739dff; --voice: #ff6d9f; --good: #3ccf8a; --warn: #f0b23c; --bad: #ff6b5e; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 22px; }
+header h1 { font-family: var(--display); font-weight: 800; font-size: clamp(40px, 9vw, 64px); line-height: .95; margin: 0; letter-spacing: -.02em; }
+header h1 span { color: var(--voice); }
+header p { margin: 8px 0 0; color: var(--muted); max-width: 60ch; }
+.station { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.station h2 { font-family: var(--display); font-weight: 500; font-size: 22px; margin: 0; display: flex; align-items: baseline; gap: 10px; text-wrap: balance; }
+.station h2 .step { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.search { display: flex; gap: 8px; flex-wrap: wrap; }
+.search input { flex: 1 1 240px; min-width: 0; font: inherit; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+button, .filebtn { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+button.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+button.rec { background: var(--voice); color: #fff; border-color: var(--voice); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, .filebtn:focus-within { outline: 2px solid var(--ref); outline-offset: 2px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 999px; }
+.chip[aria-pressed="true"] { border-color: var(--ref); color: var(--ref); }
+.label { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.note { font-size: 13px; color: var(--muted); margin: 0; }
+.status { font-size: 14px; margin: 0; min-height: 1.5em; }
+.status.err { color: var(--bad); }
+.songcard { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: end; }
+.songcard .t { font-family: var(--display); font-size: 26px; font-weight: 800; line-height: 1.1; min-width: 0; overflow-wrap: anywhere; }
+.songcard .a { color: var(--muted); }
+.meta { display: flex; gap: 18px; flex-wrap: wrap; font-family: var(--mono); font-size: 13px; }
+.meta b { font-weight: 500; color: var(--ink); }
+.meta span { color: var(--muted); }
+.conf { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; text-transform: uppercase; letter-spacing: .06em; }
+canvas { width: 100%; display: block; border-radius: 10px; background: var(--bg); }
+.tuner { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; padding: 14px; border-radius: 10px; background: var(--bg); }
+.tuner .big { font-family: var(--display); font-weight: 800; font-size: 44px; min-width: 2.6ch; text-align: center; line-height: 1; }
+.needle { position: relative; height: 34px; }
+.needle .scale { position: absolute; inset: 15px 0 auto; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--bad), var(--warn) 30%, var(--good) 45%, var(--good) 55%, var(--warn) 70%, var(--bad)); opacity: .55; }
+.needle .mark { position: absolute; top: 4px; width: 4px; height: 26px; margin-left: -2px; border-radius: 2px; background: var(--ink); left: 50%; transition: left .08s linear; }
+.needle .ticks { position: absolute; inset: auto 0 -16px; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.cents { font-family: var(--mono); font-size: 13px; color: var(--muted); margin-top: 18px; }
+label.toggle { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+.filebtn input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.filebtn { position: relative; }
+.score { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
+.dial { font-family: var(--display); font-weight: 800; font-size: 72px; line-height: 1; font-variant-numeric: tabular-nums; }
+.dial small { font-size: 22px; color: var(--muted); font-weight: 500; }
+.verdict { font-family: var(--display); font-size: 22px; font-weight: 500; text-wrap: balance; }
+.subs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.sub { padding: 12px; border-radius: 10px; background: var(--bg); display: flex; flex-direction: column; gap: 4px; }
+.sub .v { font-family: var(--mono); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.sub .d { font-size: 12px; color: var(--muted); }
+.bar { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--ink); }
+.notes { display: flex; flex-wrap: wrap; gap: 6px; }
+.n { font-family: var(--mono); font-size: 12px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; min-width: 52px; line-height: 1.3; }
+.n b { font-weight: 500; font-size: 13px; }
+.n.good { border-color: var(--good); color: var(--good); }
+.n.warn { border-color: var(--warn); color: var(--warn); }
+.n.bad { border-color: var(--bad); color: var(--bad); }
+.n.miss { border-style: dashed; color: var(--muted); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 14px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.tips { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+@media (max-width: 520px) {
+  .subs { grid-template-columns: 1fr; }
+  .score { grid-template-columns: 1fr; gap: 6px; }
+  .songcard { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .needle .mark { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>On <span>Key</span></h1>
+    <p>Pick a song, sing a bit of it, and see which notes you hit, which ones went sharp or flat, and by how many cents.</p>
+  </header>
+
+  <section class="station" aria-labelledby="h-song">
+    <h2 id="h-song"><span class="step">Step 1</span> Pick a song</h2>
+    <form class="search" id="searchForm">
+      <input id="q" type="text" placeholder="Any song — e.g. “Someone Like You, Adele”" autocomplete="off" aria-label="Song and artist">
+      <button class="primary" id="findBtn" type="submit">Get the melody</button>
+    </form>
+    <p class="status" id="songStatus"></p>
+    <div class="row"><span class="label">Or start with</span>
+      <div class="chips" id="builtins"></div>
+    </div>
+    <div class="songcard">
+      <div>
+        <div class="t" id="songTitle">Happy Birthday</div>
+        <div class="a" id="songArtist">Traditional</div>
+      </div>
+      <span class="conf" id="songConf" style="color: var(--good)">Exact melody</span>
+    </div>
+    <div class="meta" id="songMeta"></div>
+    <canvas id="refCanvas" height="150" aria-label="Melody preview"></canvas>
+    <div class="row">
+      <button id="playBtn" type="button">▶ Play melody</button>
+      <span class="note" id="sectionNote"></span>
+    </div>
+  </section>
+
+  <section class="station" aria-labelledby="h-sing">
+    <h2 id="h-sing"><span class="step">Step 2</span> Sing it</h2>
+    <div class="tuner" aria-live="off">
+      <div class="big" id="liveNote">–</div>
+      <div>
+        <div class="needle"><div class="scale"></div><div class="mark" id="needle"></div>
+          <div class="ticks"><span>−50¢ flat</span><span>in tune</span><span>sharp +50¢</span></div></div>
+        <div class="cents" id="liveCents">Live tuner shows here while you record</div>
+      </div>
+    </div>
+    <div class="row">
+      <button class="rec" id="recBtn" type="button">● Record</button>
+      <label class="filebtn" for="fileIn">⇪ Upload a recording<input id="fileIn" type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.webm,.aac"></label>
+    </div>
+    <div class="row">
+      <label class="toggle"><input type="checkbox" id="anyKey"> Let me sing in my own key</label>
+      <label class="toggle"><input type="checkbox" id="guide"> Play the melody while I record (wear headphones)</label>
+    </div>
+    <p class="status" id="recStatus"></p>
+    <p class="note">Sing only the part shown above, start to finish, on “la” or with the words. Rhythm isn’t scored, only pitch. Octaves don’t count against you.</p>
+  </section>
+
+  <section class="station" aria-labelledby="h-res" id="results">
+    <h2 id="h-res"><span class="step">Step 3</span> How you did</h2>
+    <div id="resEmpty" class="note">Your score, a pitch graph, and a note-by-note breakdown show up here after you record or upload.</div>
+    <div id="resBody" hidden>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="score">
+          <div class="dial" id="overall">0<small>/100</small></div>
+          <div class="verdict" id="verdict"></div>
+        </div>
+        <div class="subs">
+          <div class="sub"><span class="label">Notes hit</span><span class="v" id="sHit"></span><div class="bar"><i id="bHit"></i></div><span class="d">Within a half-step of the right note</span></div>
+          <div class="sub"><span class="label">Precision</span><span class="v" id="sCents"></span><div class="bar"><i id="bCents"></i></div><span class="d">Average distance from dead center</span></div>
+          <div class="sub"><span class="label">In key</span><span class="v" id="sKey"></span><div class="bar"><i id="bKey"></i></div><span class="d">Time spent on notes that belong</span></div>
+        </div>
+        <canvas id="resCanvas" height="280" aria-label="Your pitch compared with the melody"></canvas>
+        <div class="legend"><span><i style="background:var(--ref)"></i>Target melody</span><span><i style="background:var(--voice)"></i>Your voice</span></div>
+        <div class="label">Note by note (cents off: + sharp, − flat)</div>
+        <div class="notes" id="noteList"></div>
+        <ul class="tips" id="tips"></ul>
+        <div class="row"><button id="playBackBtn" type="button">▶ Hear my take</button></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const FLAT = { Db:"C#", Eb:"D#", Gb:"F#", Ab:"G#", Bb:"A#", Cb:"B", Fb:"E" };
+const MAJOR = [0,2,4,5,7,9,11], MINOR = [0,2,3,5,7,8,10];
+const midiName = m => NAMES[((Math.round(m) % 12) + 12) % 12] + (Math.floor(Math.round(m) / 12) - 1);
+function parseNote(s) {
+  const m = /^([A-Ga-g])([#b]?)(-?\d)$/.exec(String(s).trim());
+  if (!m) return null;
+  let n = m[1].toUpperCase() + m[2];
+  if (FLAT[n]) n = FLAT[n];
+  const pc = NAMES.indexOf(n);
+  let oct = +m[3];
+  if (m[1].toUpperCase() + m[2] === "Cb") oct -= 1;
+  return pc < 0 ? null : 12 * (oct + 1) + pc;
+}
+function parseKey(s) {
+  const m = /^\s*([A-Ga-g])([#b♯♭]?)\s*(major|minor|maj|min|m)?/i.exec(s || "");
+  if (!m) return null;
+  let n = m[1].toUpperCase() + m[2].replace("♯", "#").replace("♭", "b");
+  if (FLAT[n]) n = FLAT[n];
+  const minor = /^(minor|min|m)$/i.test(m[3] || "") && m[3] !== "M";
+  return { tonic: NAMES.indexOf(n), minor, label: n + (minor ? " minor" : " major") };
+}
+
+// ---------- Songs ----------
+const BUILTINS = [
+  { title: "Happy Birthday", artist: "Traditional", key: "C major", bpm: 100, section: "The whole song", exact: true,
+    notes: [["G4",.75],["G4",.25],["A4",1],["G4",1],["C5",1],["B4",2],["G4",.75],["G4",.25],["A4",1],["G4",1],["D5",1],["C5",2],
+            ["G4",.75],["G4",.25],["G5",1],["E5",1],["C5",1],["B4",1],["A4",2],["F5",.75],["F5",.25],["E5",1],["C5",1],["D5",1],["C5",2]] },
+  { title: "Twinkle, Twinkle, Little Star", artist: "Traditional", key: "C major", bpm: 100, section: "First line", exact: true,
+    notes: [["C4",1],["C4",1],["G4",1],["G4",1],["A4",1],["A4",1],["G4",2],["F4",1],["F4",1],["E4",1],["E4",1],["D4",1],["D4",1],["C4",2]] },
+  { title: "Ode to Joy", artist: "Beethoven", key: "C major", bpm: 110, section: "Main theme, first phrase", exact: true,
+    notes: [["E4",1],["E4",1],["F4",1],["G4",1],["G4",1],["F4",1],["E4",1],["D4",1],["C4",1],["C4",1],["D4",1],["E4",1],["E4",1.5],["D4",.5],["D4",2]] },
+  { title: "Amazing Grace", artist: "Traditional", key: "G major", bpm: 80, section: "First verse, first half", exact: true,
+    notes: [["D4",1],["G4",2],["B4",.5],["G4",.5],["B4",2],["A4",1],["G4",2],["E4",1],["D4",2],["D4",1],["G4",2],["B4",.5],["G4",.5],["B4",2],["A4",1],["D5",3]] },
+];
+let song = null;
+
+function loadSong(s) {
+  const notes = [];
+  for (const [n, b] of s.notes) {
+    const beats = Math.max(0.125, Math.min(8, +b || 1));
+    if (/^r/i.test(n)) { notes.push({ rest: true, beats }); continue; }
+    const midi = parseNote(n);
+    if (midi != null) notes.push({ midi, beats });
+  }
+  const pitched = notes.filter(n => !n.rest);
+  if (pitched.length < 3) throw new Error("not enough notes");
+  let key = parseKey(s.key);
+  if (!key || key.tonic < 0) key = { tonic: pitched[pitched.length - 1].midi % 12, minor: false, label: NAMES[pitched[pitched.length - 1].midi % 12] + " major" };
+  const scale = new Set((key.minor ? MINOR : MAJOR).map(i => (i + key.tonic) % 12));
+  pitched.forEach(n => scale.add(n.midi % 12));
+  song = { ...s, notes, pitched, key, scale, bpm: Math.max(40, Math.min(220, +s.bpm || 100)) };
+  $("songTitle").textContent = s.title || "Untitled";
+  $("songArtist").textContent = s.artist || "";
+  const conf = $("songConf");
+  if (s.exact) { conf.textContent = "Exact melody"; conf.style.color = "var(--good)"; }
+  else {
+    const c = (s.confidence || "medium").toLowerCase();
+    conf.textContent = "From memory · " + c + " confidence";
+    conf.style.color = c === "high" ? "var(--good)" : c === "low" ? "var(--bad)" : "var(--warn)";
+  }
+  const lo = Math.min(...pitched.map(n => n.midi)), hi = Math.max(...pitched.map(n => n.midi));
+  $("songMeta").innerHTML = "";
+  [["Key", key.label], ["Tempo", song.bpm + " bpm"], ["Range", midiName(lo) + "–" + midiName(hi)], ["Notes", pitched.length]].forEach(([k, v]) => {
+    const el = document.createElement("div");
+    el.innerHTML = "<span></span> <b></b>";
+    el.children[0].textContent = k; el.children[1].textContent = v;
+    $("songMeta").appendChild(el);
+  });
+  $("sectionNote").textContent = "Sing: " + (s.section || "the part shown");
+  document.querySelectorAll("#builtins button").forEach(b => b.setAttribute("aria-pressed", b.dataset.title === s.title ? "true" : "false"));
+  drawRef();
+}
+
+BUILTINS.forEach(s => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip"; b.textContent = s.title; b.dataset.title = s.title;
+  b.onclick = () => { loadSong(s); setStatus("songStatus", ""); };
+  $("builtins").appendChild(b);
+});
+
+// ---------- Ask Claude for any song's melody ----------
+let sample = null;
+const claudeReady = window.claude && typeof window.claude.use === "function"
+  ? window.claude.use("sample").then(s => { sample = s; return s; }).catch(() => null)
+  : Promise.resolve(null);
+claudeReady.then(s => { if (!s) {
+  $("q").disabled = true; $("findBtn").disabled = true;
+  $("q").placeholder = "Song search needs the claude.ai viewer";
+  setStatus("songStatus", "Searching any song works when this page is opened on claude.ai. The four songs below always work.");
+}});
+
+function setStatus(id, msg, err) { const el = $(id); el.textContent = msg; el.classList.toggle("err", !!err); }
+
+$("searchForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const q = $("q").value.trim();
+  if (!q) { $("q").focus(); return; }
+  if (!sample) { setStatus("songStatus", "Song search isn’t available here. Pick one of the songs below.", true); return; }
+  $("findBtn").disabled = true;
+  setStatus("songStatus", "Looking up the melody for “" + q + "”… this can take up to a minute.");
+  const prompt = `You are the melody engine for a singing practice app. The user wants to sing: "${q.slice(0, 200)}".
+Identify the song (best match). Write out the lead vocal melody of its most recognizable part (usually the chorus hook, or the opening line if that is more famous).
+Return ONLY a JSON object, no prose, with this shape:
+{"found":true,"title":"...","artist":"...","key":"<tonic> <major|minor> of the original recording","bpm":<number>,"section":"which part, e.g. 'Chorus, first line'","confidence":"high|medium|low","notes":[["E4",1],["R",0.5],["G#4",0.5]]}
+Rules for notes: 10 to 32 entries; scientific pitch notation with sharps (C#4, never Db4); the original key and the octave the singer actually sings in; durations in beats; "R" marks a rest. Be honest in "confidence" about how sure you are of the exact pitches.
+Do not include any lyrics.
+If you do not know the song's melody well enough, return {"found":false,"reason":"short reason"}.`;
+  try {
+    const r = await sample.json(prompt, { modelTier: "default" });
+    if (!r || r.found === false || !Array.isArray(r.notes)) {
+      setStatus("songStatus", (r && r.reason) ? "Couldn’t get that melody: " + r.reason : "Couldn’t find a melody for that song. Try adding the artist's name.", true);
+    } else {
+      loadSong({ ...r, exact: false });
+      setStatus("songStatus", "Melody loaded. Play it once so you know the part, then sing it.");
+    }
+  } catch (err) {
+    const msg = { not_granted: "You declined letting this page ask Claude. Pick a song below instead.",
+                  rate_limited: "Too many lookups in a row. Wait a minute and try again.",
+                  cancelled: "Lookup stopped." }[err && err.code] || "The lookup failed. Try again, or try the song title with the artist.";
+    setStatus("songStatus", msg, true);
+  } finally { $("findBtn").disabled = !sample; }
+});
+
+// ---------- Audio helpers ----------
+let actx = null;
+const ac = () => { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === "suspended") actx.resume(); return actx; };
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+
+let playing = null;
+function playMelody(onEnd) {
+  stopMelody();
+  const ctx = ac(), spb = 60 / song.bpm, t0 = ctx.currentTime + 0.15;
+  const out = ctx.createGain(); out.gain.value = 0.22; out.connect(ctx.destination);
+  let t = t0; const oscs = [];
+  for (const n of song.notes) {
+    const dur = n.beats * spb;
+    if (!n.rest) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "triangle"; o.frequency.value = hz(n.midi);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + 0.02);
+      g.gain.setValueAtTime(1, t + Math.max(0.03, dur - 0.06)); g.gain.linearRampToValueAtTime(0, t + dur - 0.01);
+      o.connect(g).connect(out); o.start(t); o.stop(t + dur); oscs.push(o);
+    }
+    t += dur;
+  }
+  playing = { t0, end: t, oscs, out };
+  const tick = () => {
+    if (!playing) return;
+    drawRef(ctx.currentTime - t0);
+    if (ctx.currentTime < playing.end) requestAnimationFrame(tick);
+    else { stopMelody(); onEnd && onEnd(); }
+  };
+  requestAnimationFrame(tick);
+  $("playBtn").textContent = "■ Stop";
+}
+function stopMelody() {
+  if (!playing) return;
+  playing.oscs.forEach(o => { try { o.stop(); } catch (_) {} });
+  try { playing.out.disconnect(); } catch (_) {}
+  playing = null; $("playBtn").textContent = "▶ Play melody"; drawRef();
+}
+$("playBtn").onclick = () => playing ? stopMelody() : playMelody();
+
+// ---------- Canvas: melody preview ----------
+function fitCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = +c.getAttribute("height");
+  c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = h + "px";
+  const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); return { g, w, h };
+}
+function drawRef(cursorSec) {
+  const { g, w, h } = fitCanvas($("refCanvas"));
+  const ps = song.pitched, lo = Math.min(...ps.map(n => n.midi)) - 2, hi = Math.max(...ps.map(n => n.midi)) + 2;
+  const total = song.notes.reduce((a, n) => a + n.beats, 0), pad = 8;
+  const x = b => pad + (b / total) * (w - pad * 2), y = m => h - 10 - ((m - lo) / (hi - lo)) * (h - 20);
+  const rowH = Math.max(4, (h - 20) / (hi - lo) * 0.8);
+  g.strokeStyle = css("--line"); g.lineWidth = 1;
+  for (let m = Math.ceil(lo); m <= hi; m++) if (m % 12 === 0) { g.beginPath(); g.moveTo(0, y(m)); g.lineTo(w, y(m)); g.stroke(); }
+  let b = 0; const spb = 60 / song.bpm;
+  g.font = "500 10px " + css("--mono");
+  for (const n of song.notes) {
+    if (!n.rest) {
+      const active = cursorSec != null && cursorSec >= b * spb && cursorSec < (b + n.beats) * spb;
+      g.fillStyle = active ? css("--voice") : css("--ref");
+      roundRect(g, x(b) + 1, y(n.midi) - rowH / 2, Math.max(3, x(b + n.beats) - x(b) - 2), rowH, 3); g.fill();
+    }
+    b += n.beats;
+  }
+  g.fillStyle = css("--muted");
+  g.fillText(midiName(hi - 2), 4, y(hi - 2) - rowH);
+  g.fillText(midiName(lo + 2), 4, y(lo + 2) + rowH + 8);
+}
+function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+
+// ---------- Pitch detection (YIN) ----------
+function yin(x, off, W, tauMin, tauMax, sr) {
+  const d = new Float32Array(tauMax + 1);
+  for (let tau = 1; tau <= tauMax; tau++) {
+    let s = 0;
+    for (let j = 0; j < W; j++) { const v = x[off + j] - x[off + j + tau]; s += v * v; }
+    d[tau] = s;
+  }
+  let run = 0; d[0] = 1;
+  for (let tau = 1; tau <= tauMax; tau++) { run += d[tau]; d[tau] = run > 0 ? d[tau] * tau / run : 1; }
+  let tau = -1;
+  for (let t = tauMin; t < tauMax; t++) {
+    if (d[t] < 0.18) { while (t + 1 < tauMax && d[t + 1] < d[t]) t++; tau = t; break; }
+  }
+  if (tau < 0) return null;
+  const a = d[tau - 1], b = d[tau], c = d[tau + 1] ?? b, den = a + c - 2 * b;
+  const t = den ? tau + (a - c) / (2 * den) : tau;
+  return { f: sr / t, ap: b };
+}
+const toMidi = f => 69 + 12 * Math.log2(f / 440);
+
+function analyze(buffer) {
+  // mono + downsample to ~16 kHz
+  const ch = buffer.numberOfChannels, len = buffer.length, sr0 = buffer.sampleRate;
+  const mono = new Float32Array(len);
+  for (let c = 0; c < ch; c++) { const d = buffer.getChannelData(c); for (let i = 0; i < len; i++) mono[i] += d[i] / ch; }
+  const k = Math.max(1, Math.round(sr0 / 16000)), sr = sr0 / k, n = Math.floor(len / k);
+  const x = new Float32Array(n);
+  for (let i = 0; i < n; i++) { let s = 0; for (let j = 0; j < k; j++) s += mono[i * k + j]; x[i] = s / k; }
+  const W = Math.round(sr * 0.032), tauMin = Math.floor(sr / 1100), tauMax = Math.ceil(sr / 70), hop = Math.round(sr * 0.01);
+  const frames = [], rmsList = [];
+  for (let off = 0; off + W + tauMax < n; off += hop) {
+    let e = 0; for (let j = 0; j < W; j++) e += x[off + j] * x[off + j];
+    rmsList.push(Math.sqrt(e / W)); frames.push({ t: off / sr, rms: rmsList[rmsList.length - 1], off });
+  }
+  const sorted = rmsList.slice().sort((a, b) => a - b), p95 = sorted[Math.floor(sorted.length * 0.95)] || 0;
+  const gate = Math.max(0.004, p95 * 0.12);
+  for (const fr of frames) {
+    fr.midi = null;
+    if (fr.rms < gate) continue;
+    const r = yin(x, fr.off, W, tauMin, tauMax, sr);
+    if (r && r.f >= 70 && r.f <= 1100) fr.midi = toMidi(r.f);
+  }
+  // median filter over voiced neighbors, then drop isolated blips
+  const raw = frames.map(f => f.midi);
+  for (let i = 0; i < frames.length; i++) {
+    if (raw[i] == null) continue;
+    const win = []; for (let j = i - 2; j <= i + 2; j++) if (raw[j] != null) win.push(raw[j]);
+    frames[i].midi = win.length >= 3 ? median(win) : null;
+  }
+  return { frames, duration: len / sr0 };
+}
+function median(a) { const s = a.slice().sort((p, q) => p - q), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+
+function segment(frames) {
+  const segs = []; let cur = null, gap = 0;
+  const close = () => { if (cur && cur.vals.length >= 7) { cur.midi = median(cur.vals); segs.push(cur); } cur = null; };
+  for (const f of frames) {
+    if (f.midi == null) { if (cur && ++gap > 4) close(); continue; }
+    gap = 0;
+    if (cur) {
+      const ref = median(cur.vals.slice(-12));
+      if (Math.abs(f.midi - ref) > 0.7) close();
+    }
+    if (!cur) cur = { start: f.t, end: f.t, vals: [] };
+    cur.vals.push(f.midi); cur.end = f.t + 0.01;
+  }
+  close();
+  return segs;
+}
+
+// ---------- Scoring ----------
+function score(an) {
+  const segs = segment(an.frames), ref = song.pitched;
+  if (segs.length < 2) return null;
+  const voiced = an.frames.filter(f => f.midi != null);
+  // transposition: octave-only, or any semitone if "own key" is on
+  const uMed = median(segs.map(s => s.midi)), rMed = median(ref.map(n => n.midi));
+  let cands = [];
+  const base = Math.round((uMed - rMed) / 12) * 12;
+  if ($("anyKey").checked) for (let s = -24; s <= 24; s++) cands.push(Math.round(uMed - rMed) + s);
+  else cands = [base - 12, base, base + 12];
+  let best = null;
+  for (const off of cands) { const r = dtw(segs, ref, off); if (!best || r.cost < best.cost) best = { ...r, off }; }
+  const off = best.off, perRef = ref.map(() => []);
+  best.path.forEach(([i, j]) => perRef[j].push(i));
+  const results = ref.map((n, j) => {
+    const ss = perRef[j].map(i => segs[i]);
+    const close = ss.filter(s => Math.abs(s.midi - n.midi - off) < 1.5);
+    const use = close.length ? close : ss;
+    let wsum = 0, esum = 0;
+    for (const s of use) { const w = s.end - s.start; wsum += w; esum += w * (s.midi - n.midi - off); }
+    const err = wsum ? esum / wsum : 99;
+    return { n, err, sung: wsum ? n.midi + off + err : null, segs: perRef[j] };
+  });
+  // time spans for drawing: split shared segments among the notes that share them
+  const share = segs.map(() => []);
+  results.forEach((r, j) => r.segs.forEach(i => share[i].push(j)));
+  results.forEach(r => { r.t0 = Infinity; r.t1 = -Infinity; });
+  share.forEach((js, i) => {
+    const s = segs[i], step = (s.end - s.start) / js.length;
+    js.forEach((j, k) => { results[j].t0 = Math.min(results[j].t0, s.start + k * step); results[j].t1 = Math.max(results[j].t1, s.start + (k + 1) * step); });
+  });
+  const hits = results.filter(r => Math.abs(r.err) < 0.5);
+  const near = results.filter(r => Math.abs(r.err) >= 0.5 && Math.abs(r.err) < 1);
+  const hitPct = (hits.length + near.length * 0.4) / results.length * 100;
+  const cents = hits.length ? hits.reduce((a, r) => a + Math.abs(r.err) * 100, 0) / hits.length : 50;
+  const centsScore = Math.max(0, Math.min(100, 100 - (cents - 5) * 1.8));
+  let inKey = 0;
+  for (const f of voiced) if (song.scale.has((((Math.round(f.midi - off)) % 12) + 12) % 12)) inKey++;
+  const keyPct = voiced.length ? inKey / voiced.length * 100 : 0;
+  const overall = Math.round(hitPct * 0.5 + centsScore * 0.3 + keyPct * 0.2);
+  const signed = hits.length ? hits.reduce((a, r) => a + r.err * 100, 0) / hits.length : 0;
+  return { results, segs, frames: an.frames, duration: an.duration, off, hitPct, cents, centsScore, keyPct, overall, signed, hits: hits.length };
+}
+
+function dtw(segs, ref, off) {
+  const n = segs.length, m = ref.length, INF = 1e9;
+  const D = Array.from({ length: n }, () => new Float64Array(m).fill(INF));
+  const c = (i, j) => Math.min(Math.abs(segs[i].midi - ref[j].midi - off), 4) * (0.5 + Math.min(1.5, (segs[i].end - segs[i].start) * 4));
+  for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) {
+    const cost = c(i, j);
+    if (i === 0 && j === 0) { D[i][j] = cost; continue; }
+    let b = INF;
+    if (i > 0 && j > 0) b = Math.min(b, D[i - 1][j - 1]);
+    if (i > 0) b = Math.min(b, D[i - 1][j] + 0.4);
+    if (j > 0) b = Math.min(b, D[i][j - 1] + 0.4);
+    D[i][j] = cost + b;
+  }
+  const path = []; let i = n - 1, j = m - 1;
+  while (i > 0 || j > 0) {
+    path.push([i, j]);
+    if (i === 0) j--; else if (j === 0) i--;
+    else {
+      const d = D[i - 1][j - 1], u = D[i - 1][j] + 0.4, l = D[i][j - 1] + 0.4;
+      if (d <= u && d <= l) { i--; j--; } else if (u <= l) i--; else j--;
+    }
+  }
+  path.push([0, 0]);
+  return { cost: D[n - 1][m - 1], path: path.reverse() };
+}
+
+// ---------- Results UI ----------
+let lastScore = null, lastBuffer = null;
+function showResults(s) {
+  lastScore = s;
+  $("resEmpty").hidden = true; $("resBody").hidden = false;
+  $("overall").innerHTML = s.overall + "<small>/100</small>";
+  const v = s.overall >= 85 ? "Right on key. That was clean." :
+            s.overall >= 70 ? "Mostly on key, with a few notes drifting." :
+            s.overall >= 50 ? "Getting there. The shape is right, some notes miss." :
+            s.overall >= 30 ? "Pretty far off in places. Try it slower with the melody playing." :
+                              "That didn’t line up with the melody much. Check you sang the right part.";
+  $("verdict").textContent = v;
+  setSub("Hit", Math.round(s.hitPct) + "%", s.hitPct);
+  setSub("Cents", s.hits ? "±" + Math.round(s.cents) + "¢" : "—", s.centsScore);
+  setSub("Key", Math.round(s.keyPct) + "%", s.keyPct);
+  const list = $("noteList"); list.innerHTML = "";
+  s.results.forEach(r => {
+    const el = document.createElement("div"), a = Math.abs(r.err);
+    el.className = "n " + (a > 1.5 ? "miss" : a < 0.25 ? "good" : a < 0.5 ? "warn" : "bad");
+    const b = document.createElement("b"); b.textContent = midiName(r.n.midi);
+    const t = document.createElement("span");
+    t.textContent = a > 1.5 ? "missed" : a >= 0.5 ? (r.err > 0 ? "too high" : "too low") : (r.err >= 0 ? "+" : "−") + Math.round(a * 100) + "¢";
+    el.title = a > 1.5 ? "No matching note found" : "You sang " + midiName(r.sung) + ", " + Math.round(r.err * 100) + " cents from target";
+    el.append(b, t); list.appendChild(el);
+  });
+  const tips = [];
+  if (s.hits >= 3 && Math.abs(s.signed) > 15) tips.push("You lean " + (s.signed > 0 ? "sharp" : "flat") + " by about " + Math.round(Math.abs(s.signed)) + " cents on average. " + (s.signed > 0 ? "Relax a little and let notes settle down into place." : "Support the breath and think of each note as slightly higher."));
+  const jumps = s.results.filter((r, j) => j > 0 && Math.abs(r.n.midi - s.results[j - 1].n.midi) >= 5 && Math.abs(r.err) >= 0.5);
+  if (jumps.length) tips.push("Big leaps gave you trouble (" + jumps.slice(0, 3).map(r => midiName(r.n.midi)).join(", ") + "). Practice sliding up to them slowly, then jump.");
+  const shift = s.off;
+  if (shift !== 0) tips.push(shift % 12 === 0 ? "You sang " + Math.abs(shift / 12) + " octave" + (Math.abs(shift) > 12 ? "s" : "") + " " + (shift < 0 ? "below" : "above") + " the original. That’s fine and isn’t counted against you." : "You sang " + Math.abs(shift) + " semitone" + (Math.abs(shift) === 1 ? "" : "s") + " " + (shift < 0 ? "below" : "above") + " the original key.");
+  if (!song.exact) tips.push("This melody came from Claude’s memory. If a note you’re sure about shows as wrong, the reference may be off.");
+  $("tips").innerHTML = ""; tips.forEach(t => { const li = document.createElement("li"); li.textContent = t; $("tips").appendChild(li); });
+  drawResult();
+  $("results").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+}
+function setSub(k, text, pct) { $("s" + k).textContent = text; $("b" + k).style.width = Math.max(0, Math.min(100, pct)) + "%"; $("b" + k).style.background = pct >= 75 ? "var(--good)" : pct >= 50 ? "var(--warn)" : "var(--bad)"; }
+
+function drawResult() {
+  const s = lastScore; if (!s) return;
+  const { g, w, h } = fitCanvas($("resCanvas"));
+  const voiced = s.frames.filter(f => f.midi != null);
+  const t0 = Math.max(0, (s.segs[0]?.start ?? 0) - 0.3), t1 = (s.segs[s.segs.length - 1]?.end ?? s.duration) + 0.3;
+  const refM = s.results.map(r => r.n.midi + s.off), allM = refM.concat(voiced.filter(f => f.t >= t0 && f.t <= t1).map(f => f.midi));
+  const lo = Math.floor(Math.min(...refM) - 3), hi = Math.ceil(Math.max(...refM) + 3);
+  const L = 36, x = t => L + (t - t0) / (t1 - t0) * (w - L - 8), y = m => h - 12 - (m - lo) / (hi - lo) * (h - 24);
+  g.font = "10px " + css("--mono"); g.lineWidth = 1;
+  for (let m = lo; m <= hi; m++) {
+    const pc = ((m % 12) + 12) % 12;
+    if (song.scale.has(((pc - s.off) % 12 + 12) % 12)) { g.strokeStyle = css("--line"); g.beginPath(); g.moveTo(L, y(m)); g.lineTo(w, y(m)); g.stroke(); }
+    if (pc === 0 || pc === 7 || m === lo + 1) { g.fillStyle = css("--muted"); g.fillText(midiName(m), 2, y(m) + 3); }
+  }
+  const rowH = Math.max(6, (h - 24) / (hi - lo) * 0.9);
+  g.globalAlpha = 0.35; g.fillStyle = css("--ref");
+  s.results.forEach(r => { if (isFinite(r.t0)) { roundRect(g, x(r.t0), y(r.n.midi + s.off) - rowH / 2, Math.max(3, x(r.t1) - x(r.t0) - 2), rowH, 3); g.fill(); } });
+  g.globalAlpha = 1;
+  g.strokeStyle = css("--voice"); g.lineWidth = 2.5; g.lineJoin = "round"; g.lineCap = "round";
+  g.beginPath(); let prev = null;
+  for (const f of s.frames) {
+    if (f.t < t0 || f.t > t1) continue;
+    if (f.midi == null || f.midi < lo - 1 || f.midi > hi + 1) { prev = null; continue; }
+    if (prev && f.t - prev.t < 0.05) g.lineTo(x(f.t), y(f.midi)); else g.moveTo(x(f.t), y(f.midi));
+    prev = f;
+  }
+  g.stroke();
+}
+
+// ---------- Recording ----------
+let rec = null;
+async function startRecording() {
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  } catch (e) {
+    setStatus("recStatus", "The microphone is blocked here. Record yourself with your phone’s voice memo app, then use “Upload a recording”. You can also open this page as a normal web page to use the mic.", true);
+    return;
+  }
+  const ctx = ac(), src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser();
+  an.fftSize = 2048; src.connect(an);
+  const chunks = []; let mr;
+  try { mr = new MediaRecorder(stream); } catch (e) { stream.getTracks().forEach(t => t.stop()); setStatus("recStatus", "This browser can’t record audio. Upload a recording instead.", true); return; }
+  mr.ondataavailable = ev => ev.data.size && chunks.push(ev.data);
+  mr.onstop = async () => {
+    stream.getTracks().forEach(t => t.stop());
+    try { src.disconnect(); } catch (_) {}
+    const blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
+    await analyzeBlob(blob);
+  };
+  const buf = new Float32Array(an.fftSize), sr = ctx.sampleRate;
+  rec = { mr, an, started: Date.now(), timer: setTimeout(stopRecording, 60000) };
+  mr.start();
+  $("recBtn").textContent = "■ Stop & score";
+  setStatus("recStatus", "Recording… sing now. Stops by itself after 60 seconds.");
+  if ($("guide").checked) playMelody();
+  const loop = () => {
+    if (!rec) return;
+    an.getFloatTimeDomainData(buf);
+    let e = 0; for (let i = 0; i < buf.length; i++) e += buf[i] * buf[i];
+    const r = Math.sqrt(e / buf.length) > 0.01 ? yin(buf, 0, 1024, Math.floor(sr / 1100), Math.min(1000, Math.ceil(sr / 70)), sr) : null;
+    if (r && r.f > 70 && r.f < 1100) {
+      const m = toMidi(r.f), near = Math.round(m), c = (m - near) * 100;
+      $("liveNote").textContent = midiName(near);
+      $("needle").style.left = (50 + c) + "%";
+      $("needle").style.background = Math.abs(c) < 10 ? "var(--good)" : Math.abs(c) < 25 ? "var(--warn)" : "var(--bad)";
+      $("liveCents").textContent = (c >= 0 ? "+" : "−") + Math.abs(Math.round(c)) + " cents · " + r.f.toFixed(1) + " Hz";
+    }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+}
+function stopRecording() {
+  if (!rec) return;
+  clearTimeout(rec.timer); stopMelody();
+  const r = rec; rec = null;
+  $("recBtn").textContent = "● Record";
+  $("liveNote").textContent = "–"; $("needle").style.left = "50%"; $("needle").style.background = "";
+  $("liveCents").textContent = "Live tuner shows here while you record";
+  if (Date.now() - r.started < 1200) setStatus("recStatus", "That was very short. Sing the whole part, then press Stop.", true);
+  else setStatus("recStatus", "Scoring…");
+  r.mr.stop();
+}
+$("recBtn").onclick = () => rec ? stopRecording() : startRecording();
+
+$("fileIn").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  setStatus("recStatus", "Reading " + f.name + "…");
+  await analyzeBlob(f);
+  e.target.value = "";
+});
+
+async function analyzeBlob(blob) {
+  let buffer;
+  try { buffer = await ac().decodeAudioData(await blob.arrayBuffer()); }
+  catch (e) { setStatus("recStatus", "Couldn’t read that audio. Try an .m4a, .mp3 or .wav file.", true); return; }
+  if (buffer.duration > 180) { setStatus("recStatus", "That recording is over 3 minutes. Trim it to just the part you sang.", true); return; }
+  lastBuffer = buffer;
+  setStatus("recStatus", "Scoring…");
+  await new Promise(r => setTimeout(r, 30));
+  const s = score(analyze(buffer));
+  if (!s) { setStatus("recStatus", "No clear singing found. Get closer to the mic and sing louder, with less background noise.", true); return; }
+  setStatus("recStatus", "Scored " + buffer.duration.toFixed(1) + " seconds of audio.");
+  showResults(s);
+}
+
+let back = null;
+$("playBackBtn").onclick = () => {
+  if (back) { try { back.stop(); } catch (_) {} back = null; $("playBackBtn").textContent = "▶ Hear my take"; return; }
+  if (!lastBuffer) return;
+  const ctx = ac(); back = ctx.createBufferSource(); back.buffer = lastBuffer; back.connect(ctx.destination);
+  back.onended = () => { back = null; $("playBackBtn").textContent = "▶ Hear my take"; };
+  back.start(); $("playBackBtn").textContent = "■ Stop";
+};
+$("anyKey").addEventListener("change", () => { if (lastBuffer && lastScore) { const s = score(analyze(lastBuffer)); if (s) showResults(s); } });
+
+loadSong(BUILTINS[0]);
+const redraw = () => { drawRef(); drawResult(); };
+window.addEventListener("resize", redraw);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+})();
+</script>
