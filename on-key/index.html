@@ -143,6 +143,7 @@ label.toggle { display: inline-flex; gap: 8px; align-items: center; font-size: 1
       <label class="toggle"><input type="checkbox" id="guide"> Play the melody while I record (wear headphones)</label>
     </div>
     <p class="status" id="recStatus"></p>
+    <div class="row" id="scoreTakeRow" hidden><button class="primary" id="scoreTakeBtn" type="button">▶ Score my take</button></div>
     <p class="note">Sing only the part shown above, start to finish, on “la” or with the words. Rhythm isn’t scored, only pitch. Octaves don’t count against you.</p>
   </section>
 
@@ -653,10 +654,22 @@ $("recBtn").onclick = () => rec ? stopRecording() : startRecording();
   e.target.value = "";
 }));
 
+let pendingVideo = null;
 async function analyzeBlob(blob) {
+  $("scoreTakeRow").hidden = true;
   let buffer;
   try { buffer = await ac().decodeAudioData(await blob.arrayBuffer()); }
-  catch (e) { setStatus("recStatus", "Couldn’t get the sound out of that file. Record a voice memo instead and use “Upload a recording”.", true); return; }
+  catch (e) {
+    // iPhone camera videos often can't be decoded directly; playing them through a media element can.
+    if (/^video\//.test(blob.type) || /\.(mov|mp4|m4v)$/i.test(blob.name || "")) {
+      pendingVideo = blob; $("scoreTakeRow").hidden = false;
+      setStatus("recStatus", "Got your take. Tap “Score my take” and keep this screen open while it listens back. It takes as long as your recording.");
+    } else setStatus("recStatus", "Couldn’t get the sound out of that file. Try an .m4a, .mp3 or .wav file.", true);
+    return;
+  }
+  await scoreBuffer(buffer);
+}
+async function scoreBuffer(buffer) {
   if (buffer.duration > 180) { setStatus("recStatus", "That recording is over 3 minutes. Trim it to just the part you sang.", true); return; }
   lastBuffer = buffer;
   setStatus("recStatus", "Scoring…");
@@ -666,6 +679,41 @@ async function analyzeBlob(blob) {
   setStatus("recStatus", "Scored " + buffer.duration.toFixed(1) + " seconds of audio.");
   showResults(s);
 }
+
+// Plays the video silently and records its sound as it goes.
+function captureFromMedia(blob) {
+  return new Promise((resolve, reject) => {
+    const ctx = ac(), url = URL.createObjectURL(blob), v = document.createElement("video");
+    v.src = url; v.playsInline = true; v.setAttribute("playsinline", ""); v.preload = "auto";
+    v.style.cssText = "position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:0;pointer-events:none";
+    document.body.appendChild(v);
+    const src = ctx.createMediaElementSource(v), proc = ctx.createScriptProcessor(4096, 1, 1), mute = ctx.createGain();
+    mute.gain.value = 0;
+    src.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
+    const chunks = [];
+    proc.onaudioprocess = e => { if (!v.paused && !v.ended) chunks.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
+    const cleanup = () => { proc.onaudioprocess = null; try { src.disconnect(); proc.disconnect(); mute.disconnect(); } catch (_) {} v.remove(); URL.revokeObjectURL(url); };
+    v.ontimeupdate = () => { if (v.duration) setStatus("recStatus", "Listening back… " + Math.floor(v.currentTime) + " of " + Math.ceil(v.duration) + " seconds"); };
+    v.onended = () => {
+      cleanup();
+      const len = chunks.reduce((a, c) => a + c.length, 0);
+      if (!len) { reject(new Error("silent")); return; }
+      const buf = ctx.createBuffer(1, len, ctx.sampleRate), data = buf.getChannelData(0);
+      let o = 0; for (const c of chunks) { data.set(c, o); o += c.length; }
+      resolve(buf);
+    };
+    v.onerror = () => { cleanup(); reject(new Error("unplayable")); };
+    v.play().catch(err => { cleanup(); reject(err); });
+  });
+}
+$("scoreTakeBtn").onclick = async () => {
+  if (!pendingVideo) return;
+  $("scoreTakeBtn").disabled = true;
+  setStatus("recStatus", "Listening back…");
+  try { const buf = await captureFromMedia(pendingVideo); $("scoreTakeRow").hidden = true; await scoreBuffer(buf); }
+  catch (e) { setStatus("recStatus", "Couldn’t hear anything in that video. Record a voice memo instead and use “Upload a recording”.", true); }
+  finally { $("scoreTakeBtn").disabled = false; }
+};
 
 let back = null;
 $("playBackBtn").onclick = () => {
